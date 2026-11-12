@@ -1,0 +1,193 @@
+{
+  "storeName": "NS Gourmet",
+  "whatsapp": "",
+  "products": [
+    {
+      "id": "combo-coxinha",
+      "name": "Combo coxinha + refrigerante + bombom no pote",
+      "category": "Combos",
+      "unitPriceCents": 2300,
+      "available": true,
+      "imageDataUrl": null
+    },
+    {
+      "id": "combo-bomba",
+      "name": "Combo bomba de calabresa + refrigerante + bombom",
+      "category": "Combos",
+      "unitPriceCents": 2300,
+      "available": true,
+      "imageDataUrl": null
+    },
+    {
+      "id": "combo-torta",
+      "name": "Combo torta salgada + refrigerante + bombom",
+      "category": "Combos",
+      "unitPriceCents": 2200,
+      "available": true,
+      "imageDataUrl": null
+    },
+    {
+      "id": "brownie",
+      "name": "Brownie de Ninho com Nutella",
+      "category": "Doces",
+      "unitPriceCents": 1000,
+      "available": true,
+      "imageDataUrl": null
+    },
+    {
+      "id": "bombom-morango",
+      "name": "Bombom de morango",
+      "category": "Doces",
+      "unitPriceCents": 700,
+      "available": true,
+      "imageDataUrl": null
+    },
+    {
+      "id": "bolo-nuvem",
+      "name": "Bolo nuvem",
+      "category": "Doces",
+      "unitPriceCents": 1600,
+      "available": true,
+      "imageDataUrl": null
+    },
+    {
+      "id": "fatia-brownie",
+      "name": "Fatia de brownie",
+      "category": "Doces",
+      "unitPriceCents": 1000,
+      "available": true,
+      "imageDataUrl": null
+    },
+    {
+      "id": "bombom-uva",
+      "name": "Bombom de uva",
+      "category": "Doces",
+      "unitPriceCents": 700,
+      "available": true,
+      "imageDataUrl": null
+    },
+    {
+      "id": "cone-chocolate",
+      "name": "Cone de chocolate",
+      "category": "Doces",
+      "unitPriceCents": 800,
+      "available": true,
+      "imageDataUrl": null
+    },
+    {
+      "id": "morango-cravejado",
+      "name": "Morango cravejado",
+      "category": "Doces",
+      "unitPriceCents": 1300,
+      "available": true,
+      "imageDataUrl": null
+    },
+    {
+      "id": "pudim",
+      "name": "Pudim",
+      "category": "Doces",
+      "unitPriceCents": 600,
+      "available": true,
+      "imageDataUrl": null
+    },
+    {
+      "id": "enroladinho",
+      "name": "Enroladinho de presunto e queijo",
+      "category": "Salgados",
+      "unitPriceCents": 1000,
+      "available": true,
+      "imageDataUrl": null
+    },
+    {
+      "id": "coxinha-costela",
+      "name": "Coxinha de costela com cream cheese",
+      "category": "Salgados",
+      "unitPriceCents": 1200,
+      "available": true,
+      "imageDataUrl": null
+    },
+    {
+      "id": "coxinha-frango",
+      "name": "Coxinha de frango com Catupity",
+      "category": "Salgados",
+      "unitPriceCents": 1200,
+      "available": true,
+      "imageDataUrl": null
+    },
+    {
+      "id": "bomba-calabresa",
+      "name": "Bomba de calabresa e queijo",
+      "category": "Salgados",
+      "unitPriceCents": 1200,
+      "available": true,
+      "imageDataUrl": null
+    },
+    {
+      "id": "torta-salgada",
+      "name": "Torta salgada com frango e cream cheese",
+      "category": "Salgados",
+      "unitPriceCents": 1300,
+      "available": true,
+      "imageDataUrl": null
+    },
+    {
+      "id": "copo-morango-brownie",
+      "name": "Morango com brownie",
+      "category": "Copos da felicidade",
+      "unitPriceCents": 1700,
+      "available": true,
+      "imageDataUrl": null
+    },
+    {
+      "id": "copo-tentacao",
+      "name": "Tentação",
+      "category": "Copos da felicidade",
+      "unitPriceCents": 1800,
+      "available": true,
+      "imageDataUrl": null
+    },
+    {
+      "id": "copo-morango",
+      "name": "Morango",
+      "category": "Copos da felicidade",
+      "unitPriceCents": 1500,
+      "available": true,
+      "imageDataUrl": null
+    },
+    {
+      "id": "copo-ferrero",
+      "name": "Ferrero Rocher",
+      "category": "Copos da felicidade",
+      "unitPriceCents": 1800,
+      "available": true,
+      "imageDataUrl": null
+    },
+    {
+      "id": "copo-sensacao",
+      "name": "Sensação de brownie",
+      "category": "Copos da felicidade",
+      "unitPriceCents": 1600,
+      "available": true,
+      "imageDataUrl": null
+    },
+    {
+      "id": "copo-tres-amores",
+      "name": "Três amores",
+      "category": "Copos da felicidade",
+      "unitPriceCents": 1600,
+      "available": true,
+      "imageDataUrl": null
+    }
+  ],
+  "deliveryRates": [
+    {
+      "neighborhood": "Bairro de teste (demonstração)",
+      "feeCents": 0
+    }
+  ],
+  "businessHours": {
+    "enabled": false,
+    "isOpen": true,
+    "timeZone": "America/Maceio"
+  }
+}
