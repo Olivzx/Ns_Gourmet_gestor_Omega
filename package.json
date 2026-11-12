@@ -2,11 +2,12 @@
   "name": "ns-gourmet-public-site-base",
   "version": "0.1.0",
   "private": true,
-  "description": "Base local do cardapio publico NS Gourmet, compativel com as APIs publicas do Gestor Omega.",
+  "description": "Cardápio público NS Gourmet, com integração planejada ao Gestor Omega.",
   "scripts": {
     "dev": "node --watch mock-server.js",
     "start": "node mock-server.js",
-    "check": "node --check mock-server.js && node --check pedido.js"
+    "check": "node --check mock-server.js && node --check pedido.js",
+    "test": "node --test"
   },
   "engines": {
     "node": ">=18"
