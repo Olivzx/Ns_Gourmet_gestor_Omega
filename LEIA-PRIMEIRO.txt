@@ -1,0 +1,13 @@
+NS GOURMET — BASE DO CARDAPIO
+
+1) Abra esta pasta no VS Code.
+2) Abra Terminal > Novo terminal.
+3) Execute: npm run dev
+4) Abra: http://localhost:3000/pedido
+
+Esta é uma prévia local com dados demonstrativos. Não envia pedidos ao Omega,
+WhatsApp ou Supabase.
+
+No computador, o catálogo rola independentemente e o checkout permanece na lateral. No celular, escolha os produtos e toque no ícone de carrinho do cabeçalho para abrir a finalização. Feche a gaveta para voltar ao cardápio sem perder os itens.
+
+Leia README.md e INTEGRACAO-OMEGA.md antes de integrar ao Gestor Omega.
