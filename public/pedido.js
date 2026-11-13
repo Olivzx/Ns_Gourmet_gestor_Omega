@@ -18,6 +18,7 @@
   let products = [];
   let rates = [];
   let businessHours = null;
+  let pixSettings = { key: "", receiverName: "", city: "" };
   let activeCategory = "Todas";
   let searchTerm = "";
   let storeIsOpen = true;
@@ -37,6 +38,83 @@
     return String(value || "").trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").toLowerCase();
   }
   function money(cents) { return currency.format((Number(cents) || 0) / 100); }
+  function pixField(id, value) {
+    const text = String(value ?? "");
+    return id + String(text.length).padStart(2, "0") + text;
+  }
+  function pixCrc16(value) {
+    let crc = 0xFFFF;
+    for (let i = 0; i < value.length; i++) {
+      crc ^= value.charCodeAt(i) << 8;
+      for (let bit = 0; bit < 8; bit++) crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) : (crc << 1);
+      crc &= 0xFFFF;
+    }
+    return crc.toString(16).toUpperCase().padStart(4, "0");
+  }
+  function pixText(value, maxLength) {
+    return String(value || "").normalize("NFD").replace(/[\\u0300-\\u036f]/g, "")
+      .toUpperCase().replace(/[^A-Z0-9 .-]/g, " ").replace(/\\s+/g, " ").trim().slice(0, maxLength);
+  }
+  function buildPixPayload(orderId, totalCents) {
+    const key = String(pixSettings.key || "").trim();
+    const name = pixText(pixSettings.receiverName, 25);
+    const city = pixText(pixSettings.city, 15);
+    if (!key || !name || !city || !Number.isSafeInteger(Number(totalCents)) || Number(totalCents) <= 0) return "";
+    const txid = String(orderId || "").replace(/[^a-zA-Z0-9]/g, "").slice(-25) || "***";
+    const merchant = pixField("00", "BR.GOV.BCB.PIX") + pixField("01", key);
+    const additional = pixField("05", txid);
+    const amount = (Number(totalCents) / 100).toFixed(2);
+    const payload = pixField("00", "01") + pixField("01", "12") + pixField("26", merchant) +
+      pixField("52", "0000") + pixField("53", "986") + pixField("54", amount) +
+      pixField("58", "BR") + pixField("59", name) + pixField("60", city) +
+      pixField("62", additional) + "6304";
+    return payload + pixCrc16(payload);
+  }
+  function renderPixPayment(orderId, totalCents) {
+    const panel = $("#pix-payment");
+    if (!panel) return;
+    if ($("#payment-method").value !== "pix") { panel.hidden = true; panel.innerHTML = ""; return; }
+    const key = String(pixSettings.key || "").trim();
+    const name = String(pixSettings.receiverName || "").trim();
+    const city = String(pixSettings.city || "").trim();
+    if (!key || !name || !city) {
+      panel.hidden = false;
+      panel.innerHTML = '<h4>Pagamento via Pix</h4><p>A chave Pix ainda não foi configurada pela loja. Seu pedido foi registrado; fale com a NS Gourmet pelo WhatsApp para receber os dados de pagamento.</p>';
+      return;
+    }
+    const payload = buildPixPayload(orderId, totalCents);
+    if (!payload) {
+      panel.hidden = false;
+      panel.innerHTML = '<h4>Pagamento via Pix</h4><p>Não foi possível montar o QR Code. Entre em contato com a loja para receber a chave Pix.</p>';
+      return;
+    }
+    const qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data=" + encodeURIComponent(payload);
+    panel.hidden = false;
+    panel.innerHTML = '<h4>Finalize seu pagamento via Pix</h4><p class="pix-payment-total">Valor do pedido: <strong>' + money(totalCents) + '</strong></p>' +
+      '<img class="pix-qr-code" src="' + qrUrl + '" alt="QR Code Pix para pagamento de ' + money(totalCents) + '">' +
+      '<p class="pix-beneficiary">Recebedor: <strong>' + escapeHtml(name) + '</strong></p>' +
+      '<div class="pix-key-line"><span>Chave Pix</span><strong>' + escapeHtml(key) + '</strong><button type="button" data-copy-pix-key>Copiar chave</button></div>' +
+      '<label class="pix-copy-label" for="pix-copy-paste">Pix Copia e Cola</label><textarea id="pix-copy-paste" readonly rows="4">' + escapeHtml(payload) + '</textarea>' +
+      '<button type="button" class="order-submit pix-copy-button" data-copy-pix>Copiar código Pix</button>' +
+      '<p class="pix-manual-note">Após pagar, aguarde a confirmação manual da loja. O envio do pedido ou a exibição deste QR Code não confirma o pagamento.</p>';
+  }
+  async function copyPixText(value, button) {
+    try {
+      if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(value);
+      else {
+        const field = document.createElement("textarea");
+        field.value = value; field.style.position = "fixed"; field.style.opacity = "0";
+        document.body.appendChild(field); field.select();
+        const copied = document.execCommand("copy"); field.remove();
+        if (!copied) throw new Error("A cópia automática não está disponível neste navegador.");
+      }
+      const original = button.textContent; button.textContent = "Copiado!";
+      window.setTimeout(() => { button.textContent = original; }, 1800);
+    } catch (_) {
+      notify("Não foi possível copiar automaticamente. Selecione e copie o conteúdo manualmente.", "error");
+    }
+  }
+
   function notify(text, type) {
     menuStatus.textContent = text || "";
     menuStatus.className = "order-status" + (type ? " " + type : "");
@@ -306,6 +384,7 @@
       if (demoRibbon) demoRibbon.hidden = result.demo !== true;
       products = Array.isArray(result.products) ? result.products.filter((product) => Number.isSafeInteger(product.unitPriceCents) && product.unitPriceCents >= 0) : [];
       rates = Array.isArray(result.deliveryRates) ? result.deliveryRates : [];
+      pixSettings = result.pix && typeof result.pix === "object" ? result.pix : { key: "", receiverName: "", city: "" };
       renderBusinessHours(result.businessHours);
       const storeName = result.storeName || "NS Gourmet";
       document.title = "Cardápio | " + storeName;
@@ -335,6 +414,13 @@
   window.setInterval(() => {
     if (document.visibilityState === "visible") void refreshBusinessHours();
   }, 60_000);
+
+  confirmation.addEventListener("click", (event) => {
+    const payloadButton = event.target.closest("[data-copy-pix]");
+    if (payloadButton) { const field = $("#pix-copy-paste"); if (field) void copyPixText(field.value, payloadButton); return; }
+    const keyButton = event.target.closest("[data-copy-pix-key]");
+    if (keyButton) void copyPixText(String(pixSettings.key || ""), keyButton);
+  });
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -378,6 +464,7 @@
       $("#confirmation-message").textContent = result.demo
         ? "Pedido registrado somente nesta demonstração local. Nenhuma mensagem foi enviada à loja. Total demonstrativo: " + money(result.totalCents) + "."
         : "Pedido #" + String(result.orderId || "").slice(-8).toUpperCase() + " registrado. Total confirmado: " + money(result.totalCents) + (whatsappUrl ? ". Envie a mensagem no WhatsApp para concluir o contato com a loja." : ". Aguarde o contato da loja.");
+      renderPixPayment(result.orderId, result.totalCents);
       $("#confirmation-whatsapp").hidden = !whatsappUrl;
       if (whatsappUrl) $("#confirmation-whatsapp").href = whatsappUrl;
       if (whatsappTab && !whatsappTab.closed && whatsappUrl) {
