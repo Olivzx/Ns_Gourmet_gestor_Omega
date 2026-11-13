@@ -281,3 +281,24 @@ body{background:radial-gradient(ellipse at 10% 0%,rgba(181,89,220,.08),transpare
 /* Capas de produto: preservar a foto inteira sem deformar nem cortar */
 .menu-photo{background:#f8eff1}
 .menu-photo img{object-fit:contain!important;padding:7px;background:#f8eff1}
+
+/* Cards mais altos para acomodar fotos de produtos, inclusive imagens verticais */
+.menu-photo{
+  height:240px;
+  min-height:240px;
+}
+.menu-photo img{
+  object-fit:contain!important;
+  width:100%;
+  height:100%;
+  padding:8px;
+}
+@media(max-width:1050px){
+  .menu-photo{height:220px;min-height:220px}
+}
+@media(max-width:760px){
+  .menu-photo{height:195px;min-height:195px}
+}
+@media(max-width:420px){
+  .menu-photo{height:175px;min-height:175px}
+}
