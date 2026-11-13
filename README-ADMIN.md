@@ -3,9 +3,9 @@
 O painel fica em `/admin` e usa o Worker existente. O cardápio público permanece em `/` e `/pedido`.
 
 ## Autenticação necessária
-- Criar um usuário de acesso administrativo em Supabase Dashboard → Authentication → Users.
-- Definir uma senha forte para esse usuário.
-- Configurar no Cloudflare Worker a variável `SUPABASE_ADMIN_EMAIL` com o mesmo e-mail do usuário.
+- Criar manualmente o usuário em Supabase Dashboard → Authentication → Users → Add user.
+- Usar o e-mail administrativo configurado em `ADMIN_EMAIL` no Worker e definir uma senha forte.
+- O Worker autoriza somente o e-mail administrativo definido em `ADMIN_EMAIL` no arquivo `worker.js`.
 - A chave `SUPABASE_SERVICE_ROLE_KEY` permanece exclusivamente como secret do Worker. Nunca copiar para HTML, CSS ou JavaScript.
 - O Worker usa a API Auth do Supabase para validar a sessão e só permite o e-mail explicitamente autorizado.
 
