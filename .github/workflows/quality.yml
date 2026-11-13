@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - feature/ns-gourmet-redesign
+      - migration/cloudflare-workers
   pull_request:
     branches:
       - main
