@@ -171,9 +171,12 @@ export default {
       return handleOrder(request, env);
     }
 
-    if (path === "/" || path === "/pedido") {
+    if ((path === "/" || path === "/pedido") && request.method === "GET") {
       const target = new URL("/pedido.html", request.url);
-      return env.ASSETS.fetch(new Request(target, request));
+      return env.ASSETS.fetch(new Request(target, {
+        method: "GET",
+        headers: request.headers
+      }));
     }
 
     return env.ASSETS.fetch(request);
