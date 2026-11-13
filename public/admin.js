@@ -5,7 +5,7 @@ const days=[["sun","Domingo"],["mon","Segunda"],["tue","Terça"],["wed","Quarta"
 const statusLabels={received:"Recebido",preparing:"Em preparo",ready:"Pronto",out_for_delivery:"Saiu para entrega",completed:"Concluído",cancelled:"Cancelado"};
 const paymentLabels={pending:"Pendente",paid:"Pago",refunded:"Estornado"};
 const methodLabels={pix:"Pix",cash:"Dinheiro",debit:"Débito",credit:"Crédito",transfer:"Transferência",other:"Outro"};
-const unitLabels={un:"un",kg:"kg",g:"g",l:"L",ml:"ml",pct:"pacote",cx:"caixa"};\nconst menuCollator=new Intl.Collator("pt-BR",{sensitivity:"base",numeric:true});\nconst normalizeSearch=value=>String(value??"").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").toLocaleLowerCase("pt-BR");
+const unitLabels={un:"un",kg:"kg",g:"g",l:"L",ml:"ml",pct:"pacote",cx:"caixa"};\nconst menuCollator=new Intl.Collator("pt-BR",{sensitivity:"base",numeric:true});\nconst normalizeSearch=value=>String(value??"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("pt-BR");
 let token=sessionStorage.getItem("omega_admin_token")||"",user=null;
 let autoRefreshTimer=null,loading=false;
 let pendingImageFile=null,pendingImage=null,pendingImageObjectUrl=null;
