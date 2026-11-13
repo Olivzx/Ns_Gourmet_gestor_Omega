@@ -187,3 +187,8 @@ input,select,textarea{color:#382c27}
 .order-print-button:hover{background:#efe1d7}
 .order-note{margin-top:8px;padding:8px 10px;border-left:3px solid var(--gold);border-radius:0 7px 7px 0;background:#fbf5eb;color:#5d493d;font-size:10px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
 @media(max-width:560px){.order-toolbar{width:100%;align-items:stretch;flex-direction:column}.order-toolbar>select,.thermal-paper-control select{width:100%}.order-print-button{width:100%;min-height:39px}}
+
+
+.settings-subsection{margin-top:22px;padding-top:18px;border-top:1px solid var(--line)}
+.settings-subsection h3{margin:4px 0 6px;font-size:16px;color:var(--ink)}
+.settings-subsection>.muted{font-size:11px;line-height:1.5;margin:0 0 14px}
