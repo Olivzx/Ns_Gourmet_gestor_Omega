@@ -73,6 +73,11 @@
           <div class="category-order-wrap"><strong>Posição das categorias</strong><p class="muted">Use as setas para mudar a sequência manualmente.</p><div id="menu-category-order" class="menu-category-order"></div></div>
           <p class="muted">Na lista de produtos, use ↑ e ↓ para ajustar a ordem manual. A ordem salva será aplicada também ao cardápio público.</p>
         </div>
+        <div class="product-list-toolbar">
+          <label class="product-search-field"><span>Busca rápida</span><input id="product-search" type="search" placeholder="Buscar produto, categoria ou SKU..." autocomplete="off"></label>
+          <label class="product-category-field"><span>Filtrar categoria</span><select id="product-category-filter"><option value="">Todas as categorias</option></select></label>
+          <span id="product-list-count" class="product-list-count" aria-live="polite">Carregando produtos…</span>
+        </div>
         <div id="products-list" class="products-list"></div>
         <form id="product-form" class="panel editor" hidden>
           <div class="panel-head"><div><p class="eyebrow">CADASTRO DE PRODUTO</p><h2 id="product-form-title">Novo produto</h2></div><button type="button" id="cancel-product" class="button light">Fechar</button></div>
