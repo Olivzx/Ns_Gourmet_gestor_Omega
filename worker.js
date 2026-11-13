@@ -217,6 +217,9 @@ async function handleAdmin(request, env) {
         id: true, store_name: String(body.store_name).trim().slice(0,100), whatsapp: String(body.whatsapp || "").replace(/\D/g,"").slice(0,20),
         accepting_orders: body.accepting_orders === true, business_hours_enabled: body.business_hours_enabled === true,
         business_hours: body.business_hours && typeof body.business_hours === "object" ? body.business_hours : {},
+        pix_key: String(body.pix_key || "").trim().slice(0,254) || null,
+        pix_receiver_name: String(body.pix_receiver_name || "").trim().slice(0,25) || null,
+        pix_city: String(body.pix_city || "").trim().slice(0,15) || null,
         time_zone: String(body.time_zone || "America/Maceio").slice(0,80), updated_at: new Date().toISOString()
       });
       return json({ ok: true, settings: result?.[0] });
@@ -318,7 +321,18 @@ async function handleMenu(env) {
   try {
     const menu = await supabaseRpc(env, "public_order_menu");
     if (!menu || typeof menu !== "object" || Array.isArray(menu)) return json({ error: "O banco retornou um cardápio inválido." }, 502);
-    return json({ ...menu, businessHours: publicHours(menu), demo: false });
+    const pixRows = await supabaseRest(env, "public_store_settings?select=pix_key,pix_receiver_name,pix_city&id=eq.true&limit=1");
+    const pixSettings = pixRows?.[0] || {};
+    return json({
+      ...menu,
+      pix: {
+        key: pixSettings.pix_key || "",
+        receiverName: pixSettings.pix_receiver_name || "",
+        city: pixSettings.pix_city || ""
+      },
+      businessHours: publicHours(menu),
+      demo: false
+    });
   } catch (error) {
     if (error.status === 503) return json({ error: error.message }, 503);
     return json({ error: "Não foi possível carregar o cardápio agora." }, 502);
