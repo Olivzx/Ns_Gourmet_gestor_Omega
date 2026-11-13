@@ -1,5 +1,4 @@
 const ADMIN_EMAIL = "ns_gourmet@profissional.com";
-const BOOTSTRAP_PATH = "/api/admin/bootstrap-once-7f1d6c6e3f5d4c9bbd2a8e5f1a7c3d9b";
 const JSON_HEADERS = {
   "content-type": "application/json; charset=utf-8",
   "cache-control": "no-store",
@@ -69,23 +68,7 @@ async function requireAdmin(request, env) {
 async function handleAdmin(request, env) {
   const url = new URL(request.url), path = url.pathname;
   if (!isConfigured(env)) return json({ error: "Integração com Supabase indisponível." }, 503);
-  if (path === BOOTSTRAP_PATH && request.method === "GET") {
-    if (!env.SUPABASE_ADMIN_BOOTSTRAP_PASSWORD) return json({ error: "Bootstrap secret ausente." }, 503);
-    const email = ADMIN_EMAIL;
-    const password = env.SUPABASE_ADMIN_BOOTSTRAP_PASSWORD;
-    const response = await fetch(String(env.SUPABASE_URL).replace(/\/$/, "") + "/auth/v1/admin/users", {
-      method: "POST", headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY,
-        authorization: "Bearer " + env.SUPABASE_SERVICE_ROLE_KEY, "content-type": "application/json" },
-      body: JSON.stringify({ email, password, email_confirm: true, user_metadata: { role: "admin", app: "ns-gourmet-omega" } })
-    });
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok && !/already been registered|already exists/i.test(String(result.msg || result.message || result.code || ""))) {
-      return json({ ok: false, error: "Não foi possível criar a conta administrativa.", status: response.status }, 502);
-    }
-    return json({ ok: true, message: response.ok ? "Conta administrativa criada." : "A conta já existia; não foi duplicada.", email });
-  }
   if (path === "/api/admin/login" && request.method === "POST") {
-    if (!ADMIN_EMAIL) return json({ error: "Configure SUPABASE_ADMIN_EMAIL nas variáveis do Worker antes do primeiro acesso." }, 503);
     let input;
     try { input = await request.json(); } catch { return json({ error: "Informe e-mail e senha." }, 400); }
     const email = String(input?.email || "").trim().toLowerCase();
