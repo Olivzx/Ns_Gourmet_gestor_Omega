@@ -11,6 +11,7 @@ const js = fs.readFileSync(path.join(root, "pedido.js"), "utf8");
 const css = fs.readFileSync(path.join(root, "pedido.css"), "utf8");
 const adminHtml = fs.readFileSync(path.join(root, "public/admin.html"), "utf8");
 const adminJs = fs.readFileSync(path.join(root, "public/admin.js"), "utf8");
+const adminCss = fs.readFileSync(path.join(root, "public/admin.css"), "utf8");
 
 test("o script do cardápio público tem sintaxe JavaScript válida", () => {
   assert.doesNotThrow(() => new vm.Script(js));
@@ -91,7 +92,7 @@ test("o gestor permite imprimir comandas em bobinas térmicas de 58 mm e 80 mm",
   assert.ok(adminHtml.includes('<option value="58">58 mm</option>'));
   assert.ok(adminJs.includes('data-print-order='));
   assert.ok(adminJs.includes('function printOrder(id)'));
-  assert.ok(adminJs.includes('window.open("", "_blank"'));
+  assert.ok(adminJs.includes('window.open("","_blank"'));
   assert.ok(adminJs.includes("order.notes"));
   assert.ok(adminJs.includes("omega_thermal_paper_width"));
   assert.ok(adminCss.includes(".order-print-button"));
