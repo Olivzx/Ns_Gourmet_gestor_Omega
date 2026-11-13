@@ -167,3 +167,13 @@ input,select,textarea{color:#382c27}
 .menu-category-row button,.product-actions button[data-product-up],.product-actions button[data-product-down]{border:1px solid var(--line);background:#f8f2ea;color:#704b3d;border-radius:7px;padding:6px 9px;font-size:11px;font-weight:800}
 .menu-category-row button:disabled{opacity:.35;cursor:not-allowed}
 @media(max-width:560px){.menu-sort-controls{grid-template-columns:1fr}.menu-category-row{flex-wrap:wrap}}
+
+
+/* Busca e filtro rápidos do catálogo */
+.product-list-toolbar{display:grid;grid-template-columns:minmax(220px,1.6fr) minmax(180px,1fr) auto;align-items:end;gap:12px;margin:0 0 12px;padding:13px 15px;border:1px solid var(--line);border-radius:12px;background:#fffefa}
+.product-search-field,.product-category-field{display:grid;gap:6px;margin:0!important;color:var(--muted);font-size:10px;font-weight:700}
+.product-list-toolbar input,.product-list-toolbar select{width:100%;min-width:0}
+.product-list-count{padding:0 2px 11px;color:var(--muted);font-size:10px;white-space:nowrap}
+.product-actions button:disabled{opacity:.35;cursor:not-allowed}
+@media(max-width:760px){.product-list-toolbar{grid-template-columns:1fr 1fr}.product-list-count{grid-column:1/-1;padding:0}}
+@media(max-width:560px){.product-list-toolbar{grid-template-columns:1fr}.product-list-count{grid-column:auto}}
