@@ -14,9 +14,14 @@ CREATE POLICY deny_client_access_admin_menu_categories ON public.admin_menu_cate
 REVOKE ALL ON TABLE public.admin_menu_categories FROM anon, authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.admin_menu_categories TO service_role;
 
-INSERT INTO public.admin_menu_categories(name, sort_order)
-SELECT category, row_number() OVER (ORDER BY lower(category))::integer
-FROM (SELECT DISTINCT btrim(category) AS category FROM public.public_order_products WHERE btrim(category) <> '') c
+INSERT INTO public.admin_menu_categories(name, sort_order, created_at)
+SELECT category, row_number() OVER (ORDER BY lower(category))::integer, first_product_at
+FROM (
+  SELECT btrim(category) AS category, min(created_at) AS first_product_at
+  FROM public.public_order_products
+  WHERE btrim(category) <> ''
+  GROUP BY btrim(category)
+) c
 ON CONFLICT (name) DO NOTHING;
 
 WITH ranked AS (
