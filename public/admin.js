@@ -79,11 +79,15 @@ function renderOrders(){
  $("#orders-list").innerHTML=shown.length?shown.map(orderCard).join(""):empty("Nenhum pedido de retirada encontrado neste filtro. As entregas ficam na área Entregas.");
 }
 function renderDeliveries(){
- const list=(data.orders||[]).filter(o=>o.fulfillment_type==="delivery"),active=list.filter(o=>!["completed","cancelled"].includes(o.status)),history=list.filter(o=>["completed","cancelled"].includes(o.status));
+ const list=(data.orders||[]).filter(o=>o.fulfillment_type==="delivery");
+ const active=list.filter(o=>!["completed","cancelled"].includes(o.status));
+ const completed=list.filter(o=>o.status==="completed");
+ const cancelled=list.filter(o=>o.status==="cancelled");
  const filter=$("#delivery-filter")?.value||"active";
- const shown=filter==="history"?history:filter==="all"?list:active;
- $("#delivery-stats").innerHTML=[stat("Entregas ativas",active.length),stat("Prontas para sair",list.filter(o=>o.status==="ready").length),stat("No histórico",history.length)].join("");
- $("#deliveries-list").innerHTML=shown.length?shown.map(orderCard).join(""):empty(filter==="history"?"Ainda não há entregas concluídas ou canceladas.":"Não há entregas ativas no momento.");
+ const shown=filter==="completed"?completed:filter==="cancelled"?cancelled:filter==="all"?list:active;
+ $("#delivery-stats").innerHTML=[stat("Em andamento",active.length),stat("Concluídas",completed.length),stat("Canceladas",cancelled.length)].join("");
+ const emptyMessage=filter==="completed"?"Ainda não há entregas concluídas.":filter==="cancelled"?"Não há pedidos cancelados.":filter==="all"?"Não há pedidos de entrega registrados.":"Não há entregas em andamento no momento.";
+ $("#deliveries-list").innerHTML=shown.length?shown.map(orderCard).join(""):empty(emptyMessage);
 }
 function getMenuProducts(){
  const products=[...(data.products||[])],mode=$("#product-sort-mode")?.value||"manual";
