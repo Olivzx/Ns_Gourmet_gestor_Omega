@@ -36,7 +36,7 @@ function startAutoRefresh(){if(autoRefreshTimer)clearInterval(autoRefreshTimer);
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")refreshOrdersSilently();});
 function renderAll(){renderOverview();renderOrders();renderDeliveries();renderProducts();renderCustomers();renderInventory();renderFinance();renderReports();renderSettings();}
 function renderOverview(){
- const orders=(data.orders||[]).filter(o=>o.fulfillment_type!=="delivery"),paid=monthEntries(),s=sums(paid),pendingOrders=orders.filter(o=>["received","preparing","ready"].includes(o.status)).length;
+ const orders=data.orders||[],paid=monthEntries(),s=sums(paid),pendingOrders=orders.filter(o=>["received","preparing","ready"].includes(o.status)).length;
  const today=localDate(),todayOrders=orders.filter(o=>localDateOf(o.created_at)===today),low=(data.inventory||[]).filter(i=>i.active&&Number(i.quantity_on_hand)<=Number(i.minimum_quantity));
  $("#today-label").textContent=new Date().toLocaleDateString("pt-BR",{weekday:"long",day:"2-digit",month:"long"});
  $("#overview-stats").innerHTML=[stat("Pedidos em aberto",pendingOrders,"Aguardando conclusão"),stat("Pedidos de hoje",todayOrders.length,"Todos os canais"),stat("Receitas recebidas no mês",money(s.income),"Lançamentos efetivamente pagos"),stat("Saldo do mês",money(s.income-s.expense),"Receitas menos despesas pagas")].join("");
