@@ -2,45 +2,144 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#f7f2eb"><title>Painel administrativo | NS Gourmet</title>
+<meta name="theme-color" content="#f7f2eb"><meta name="description" content="Painel de gestão NS Gourmet">
+<title>Gestão | NS Gourmet</title>
 <link rel="icon" href="/favicon.svg"><link rel="stylesheet" href="/admin.css">
 </head>
 <body>
 <div class="app-shell">
   <aside class="sidebar" id="sidebar">
-    <a class="brand" href="/admin"><span class="brand-mark">NS</span><span><b>NS Gourmet</b><small>PAINEL DE GESTÃO</small></span></a>
+    <a class="brand" href="/admin"><span class="brand-mark">NS</span><span><b>NS Gourmet</b><small>GESTÃO INTELIGENTE</small></span></a>
+    <div class="nav-caption">OPERAÇÃO</div>
     <nav class="nav">
-      <button class="nav-item active" data-view="orders"><span>▤</span> Pedidos <i id="pending-count">0</i></button>
+      <button class="nav-item active" data-view="overview"><span>⌂</span> Visão geral</button>
+      <button class="nav-item" data-view="orders"><span>▤</span> Pedidos <i id="pending-count">0</i></button>
+      <button class="nav-item" data-view="deliveries"><span>➤</span> Entregas</button>
       <button class="nav-item" data-view="products"><span>◇</span> Produtos</button>
+      <button class="nav-item" data-view="customers"><span>♙</span> Clientes</button>
+    </nav>
+    <div class="nav-caption">CONTROLE DO NEGÓCIO</div>
+    <nav class="nav">
+      <button class="nav-item" data-view="inventory"><span>▦</span> Estoque</button>
+      <button class="nav-item" data-view="finance"><span>＄</span> Financeiro</button>
+      <button class="nav-item" data-view="reports"><span>▥</span> Relatórios</button>
       <button class="nav-item" data-view="settings"><span>⚙</span> Configurações</button>
     </nav>
-    <div class="sidebar-bottom"><span class="online-dot"></span> Conexão segura<br><small>Cloudflare · Supabase</small></div>
+    <div class="sidebar-bottom"><span class="online-dot"></span> Conexão protegida<br><small>Cloudflare · Supabase</small></div>
   </aside>
   <main class="main">
-    <header class="topbar"><button id="menu-toggle" class="icon-btn" aria-label="Abrir menu">☰</button><div><p class="eyebrow">NS GOURMET / GESTÃO</p><h1 id="page-title">Pedidos</h1></div><div class="top-actions"><span id="admin-email" class="admin-email"></span><button id="refresh" class="button light">Atualizar</button><button id="logout" class="button outline" hidden>Sair</button></div></header>
+    <header class="topbar">
+      <button id="menu-toggle" class="icon-btn" aria-label="Abrir menu">☰</button>
+      <div><p class="eyebrow">NS GOURMET / CENTRAL DE GESTÃO</p><h1 id="page-title">Visão geral</h1></div>
+      <div class="top-actions"><span id="admin-email" class="admin-email"></span><button id="refresh" class="button light">↻ Atualizar</button><button id="logout" class="button outline" hidden>Sair</button></div>
+    </header>
     <section id="login-view" class="login-wrap">
-      <form id="login-form" class="login-card"><div class="login-logo">NS</div><p class="eyebrow">ÁREA RESTRITA</p><h2>Bem-vinda ao seu painel</h2><p class="muted">Entre com a conta administrativa cadastrada no Supabase.</p>
-      <label>E-mail<input id="email" type="email" autocomplete="username" required></label>
-      <label>Senha<input id="password" type="password" autocomplete="current-password" required></label>
-      <p id="login-error" class="error" role="alert"></p><button class="button primary full" type="submit">Entrar no painel</button>
-      <small class="muted security-copy">Acesso protegido por autenticação. Seus dados não ficam expostos no navegador.</small></form>
+      <form id="login-form" class="login-card">
+        <div class="login-logo">NS</div><p class="eyebrow">ÁREA ADMINISTRATIVA</p><h2>Bem-vinda de volta</h2>
+        <p class="muted">Acesse a central de operação, vendas e resultados da NS Gourmet.</p>
+        <label>E-mail<input id="email" type="email" autocomplete="username" required></label>
+        <label>Senha<input id="password" type="password" autocomplete="current-password" required></label>
+        <p id="login-error" class="error" role="alert"></p><button class="button primary full" type="submit">Entrar na gestão</button>
+        <small class="muted security-copy">Acesso restrito. Seus dados são consultados pelo servidor autenticado.</small>
+      </form>
     </section>
     <section id="dashboard" hidden>
       <div id="notice" class="notice" role="status"></div>
-      <section class="view active" id="view-orders">
-        <div class="stats" id="stats"><article><small>Pedidos recebidos</small><b>—</b></article><article><small>Em preparo</small><b>—</b></article><article><small>Concluídos hoje</small><b>—</b></article><article><small>Vendas registradas</small><b>—</b></article></div>
-        <div class="panel"><div class="panel-head"><div><p class="eyebrow">ACOMPANHAMENTO</p><h2>Pedidos recentes</h2></div><select id="order-filter"><option value="all">Todos os pedidos</option><option value="received">Recebidos</option><option value="preparing">Em preparo</option><option value="ready">Prontos</option><option value="out_for_delivery">Saiu para entrega</option><option value="completed">Concluídos</option><option value="cancelled">Cancelados</option></select></div><div id="orders-list" class="orders-list"><p class="empty">Entre para carregar os pedidos.</p></div></div>
+      <section class="view active" id="view-overview">
+        <div class="welcome-row"><div><p class="eyebrow">RESUMO DA OPERAÇÃO</p><h2>Olá! Aqui está o panorama da sua loja.</h2><p class="muted">Acompanhe vendas, caixa, pedidos e pontos de atenção em um só lugar.</p></div><span class="date-chip" id="today-label"></span></div>
+        <div class="stats" id="overview-stats"></div>
+        <div class="content-grid">
+          <div class="panel"><div class="panel-head"><div><p class="eyebrow">FINANCEIRO</p><h2>Resultado do mês</h2></div><button class="text-button" data-goto="finance">Abrir financeiro →</button></div><div id="overview-finance" class="finance-overview"></div></div>
+          <div class="panel"><div class="panel-head"><div><p class="eyebrow">ATENÇÃO</p><h2>Estoque baixo</h2></div><button class="text-button" data-goto="inventory">Ver estoque →</button></div><div id="overview-stock"></div></div>
+        </div>
+        <div class="panel"><div class="panel-head"><div><p class="eyebrow">ACOMPANHAMENTO</p><h2>Pedidos recentes</h2></div><button class="text-button" data-goto="orders">Ver todos →</button></div><div id="overview-orders" class="orders-list"></div></div>
+      </section>
+      <section class="view" id="view-orders">
+        <div class="section-intro"><div><p class="eyebrow">ATENDIMENTO E PRODUÇÃO</p><h2>Gestão de pedidos</h2><p class="muted">Atualize a etapa de cada pedido e confirme o recebimento do pagamento separadamente.</p></div><select id="order-filter"><option value="all">Todos os pedidos</option><option value="received">Recebidos</option><option value="preparing">Em preparo</option><option value="ready">Prontos</option><option value="out_for_delivery">Saiu para entrega</option><option value="completed">Concluídos</option><option value="cancelled">Cancelados</option></select></div>
+        <div id="orders-list" class="orders-list panel"></div>
+      </section>
+      <section class="view" id="view-deliveries">
+        <div class="section-intro"><div><p class="eyebrow">LOGÍSTICA</p><h2>Central de entregas</h2><p class="muted">Pedidos que precisam sair, estão em rota ou já foram entregues.</p></div></div>
+        <div class="stats compact-stats" id="delivery-stats"></div><div id="deliveries-list" class="orders-list panel"></div>
       </section>
       <section class="view" id="view-products">
-        <div class="panel"><div class="panel-head"><div><p class="eyebrow">CARDÁPIO</p><h2>Produtos</h2><p class="muted">Cadastre produtos e controle a disponibilidade no cardápio público.</p></div><button id="new-product" class="button primary">+ Novo produto</button></div><div id="products-list" class="products-list"></div></div>
-        <form id="product-form" class="panel editor" hidden><div class="panel-head"><h2 id="product-form-title">Novo produto</h2><button type="button" id="cancel-product" class="button light">Fechar</button></div><input id="product-id" type="hidden"><div class="form-grid"><label>Nome<input id="product-name" maxlength="120" required></label><label>Categoria<input id="product-category" maxlength="60" required></label><label>Preço (R$)<input id="product-price" type="number" min="0" step="0.01" required></label><label>URL da imagem<input id="product-image" type="url" placeholder="https://..."></label></div><label class="check"><input id="product-available" type="checkbox" checked> Disponível no cardápio</label><div class="form-actions"><button class="button primary" type="submit">Salvar produto</button></div></form>
+        <div class="section-intro"><div><p class="eyebrow">CARDÁPIO E CUSTOS</p><h2>Catálogo de produtos</h2><p class="muted">Gerencie apresentação, preço de venda, custo estimado e disponibilidade do cardápio.</p></div><button id="new-product" class="button primary">＋ Novo produto</button></div>
+        <div id="products-list" class="products-list"></div>
+        <form id="product-form" class="panel editor" hidden>
+          <div class="panel-head"><div><p class="eyebrow">CADASTRO DE PRODUTO</p><h2 id="product-form-title">Novo produto</h2></div><button type="button" id="cancel-product" class="button light">Fechar</button></div>
+          <input id="product-id" type="hidden">
+          <div class="product-editor-grid">
+            <div class="product-image-preview" id="product-image-preview"><span>Prévia da imagem</span></div>
+            <div class="form-grid">
+              <label class="span-2">Nome do produto<input id="product-name" maxlength="120" placeholder="Ex.: Bolo de morango com Ninho" required></label>
+              <label>Categoria<input id="product-category" list="category-options" maxlength="60" placeholder="Bolos, salgados..." required><datalist id="category-options"></datalist></label>
+              <label>SKU / Código interno<input id="product-sku" maxlength="60" placeholder="Opcional"></label>
+              <label>Preço de venda (R$)<input id="product-price" type="number" min="0.01" step="0.01" required></label>
+              <label>Custo estimado (R$)<input id="product-cost" type="number" min="0" step="0.01" value="0"></label>
+              <label>Tempo de preparo (min)<input id="product-prep" type="number" min="0" step="1" placeholder="Opcional"></label>
+              <label class="span-2">URL da imagem<input id="product-image" type="url" placeholder="https://..."></label>
+              <label class="span-2">Descrição para o cardápio<textarea id="product-description" rows="3" maxlength="600" placeholder="Descreva o produto, recheio, tamanho e diferenciais."></textarea></label>
+              <label class="check span-2"><input id="product-available" type="checkbox" checked> Disponível para pedidos no cardápio público</label>
+            </div>
+          </div>
+          <div id="product-margin" class="margin-preview"></div>
+          <div class="form-actions"><button class="button primary" type="submit">Salvar produto</button></div>
+        </form>
+      </section>
+      <section class="view" id="view-customers">
+        <div class="section-intro"><div><p class="eyebrow">RELACIONAMENTO</p><h2>Carteira de clientes</h2><p class="muted">Clientes identificados pelos pedidos realizados, com frequência e histórico recente.</p></div><input id="customer-search" class="search-input" placeholder="Buscar nome ou telefone..."></div>
+        <div id="customers-list" class="panel customers-list"></div>
+      </section>
+      <section class="view" id="view-inventory">
+        <div class="section-intro"><div><p class="eyebrow">INSUMOS E MATERIAIS</p><h2>Controle de estoque</h2><p class="muted">Cadastre ingredientes e materiais, registre entradas, saídas e ajustes. Cada movimentação fica no histórico.</p></div></div>
+        <div class="stats compact-stats" id="inventory-stats"></div>
+        <div class="content-grid">
+          <form id="inventory-item-form" class="panel">
+            <div class="panel-head"><div><p class="eyebrow">CADASTRO</p><h2>Novo item de estoque</h2></div></div>
+            <label>Nome do insumo<input id="inventory-name" maxlength="120" placeholder="Ex.: Leite condensado" required></label>
+            <div class="form-grid"><label>Unidade<select id="inventory-unit"><option value="un">Unidade</option><option value="kg">Quilograma</option><option value="g">Grama</option><option value="l">Litro</option><option value="ml">Mililitro</option><option value="pct">Pacote</option><option value="cx">Caixa</option></select></label><label>Estoque mínimo<input id="inventory-min" type="number" min="0" step="0.001" value="0"></label><label class="span-2">Custo por unidade (R$)<input id="inventory-cost" type="number" min="0" step="0.01" value="0"></label></div>
+            <label>Observações<textarea id="inventory-notes" rows="2"></textarea></label><div class="form-actions"><button class="button primary" type="submit">Cadastrar item</button></div>
+          </form>
+          <form id="inventory-movement-form" class="panel">
+            <div class="panel-head"><div><p class="eyebrow">MOVIMENTAÇÃO</p><h2>Registrar movimento</h2></div></div>
+            <label>Item<select id="movement-item" required><option value="">Selecione o item</option></select></label>
+            <div class="form-grid"><label>Tipo<select id="movement-type"><option value="in">Entrada</option><option value="out">Saída</option><option value="adjustment">Ajustar saldo</option></select></label><label>Quantidade<input id="movement-quantity" type="number" min="0.001" step="0.001" required></label></div>
+            <label>Motivo<input id="movement-reason" maxlength="160" placeholder="Compra, consumo, perda..." required></label><label>Observações<textarea id="movement-notes" rows="2"></textarea></label>
+            <div class="form-actions"><button class="button primary" type="submit">Registrar movimentação</button></div>
+          </form>
+        </div>
+        <div class="panel"><div class="panel-head"><div><p class="eyebrow">POSIÇÃO ATUAL</p><h2>Itens cadastrados</h2></div></div><div id="inventory-list" class="inventory-list"></div></div>
+        <div class="panel"><div class="panel-head"><div><p class="eyebrow">AUDITORIA</p><h2>Últimas movimentações</h2></div></div><div id="movements-list" class="movements-list"></div></div>
+      </section>
+      <section class="view" id="view-finance">
+        <div class="section-intro"><div><p class="eyebrow">CAIXA E RESULTADO</p><h2>Gestão financeira</h2><p class="muted">Registre entradas e despesas, acompanhe pagamentos pendentes e veja o saldo efetivamente movimentado.</p></div></div>
+        <div class="stats" id="finance-stats"></div>
+        <div class="content-grid">
+          <form id="finance-entry-form" class="panel">
+            <div class="panel-head"><div><p class="eyebrow">LANÇAMENTO</p><h2>Novo lançamento</h2></div></div>
+            <div class="form-grid"><label>Tipo<select id="finance-kind"><option value="income">Entrada / Receita</option><option value="expense">Saída / Despesa</option></select></label><label>Categoria<select id="finance-category" required></select></label></div>
+            <label>Descrição<input id="finance-description" maxlength="180" placeholder="Ex.: Compra de chocolate" required></label>
+            <div class="form-grid"><label>Valor (R$)<input id="finance-amount" type="number" min="0.01" step="0.01" required></label><label>Vencimento<input id="finance-date" type="date" required></label><label>Forma de pagamento<select id="finance-method"><option value="">Não definido</option><option value="pix">Pix</option><option value="cash">Dinheiro</option><option value="debit">Débito</option><option value="credit">Crédito</option><option value="transfer">Transferência</option><option value="other">Outro</option></select></label><label>Situação<select id="finance-status"><option value="paid">Pago / Recebido</option><option value="pending">Pendente</option></select></label></div>
+            <label>Observações<textarea id="finance-notes" rows="2"></textarea></label><div class="form-actions"><button class="button primary" type="submit">Salvar lançamento</button></div>
+          </form>
+          <div class="panel"><div class="panel-head"><div><p class="eyebrow">ORIENTAÇÃO</p><h2>Como o caixa funciona</h2></div></div><div class="finance-guidance"><p><b>Vendas online:</b> entram no caixa somente quando o pedido for marcado como pago.</p><p><b>Lançamentos manuais:</b> use para vendas avulsas, compras, contas, taxas e demais despesas.</p><p><b>Pendentes:</b> aparecem separados do saldo realizado, sem inflar o resultado.</p><p class="muted">O resultado é uma visão gerencial baseada nos lançamentos registrados; mantenha todas as despesas e recebimentos atualizados.</p></div></div>
+        </div>
+        <div class="panel"><div class="panel-head"><div><p class="eyebrow">LIVRO-CAIXA</p><h2>Entradas e saídas</h2></div><select id="finance-filter"><option value="all">Todos os lançamentos</option><option value="income">Somente receitas</option><option value="expense">Somente despesas</option><option value="pending">Pendentes</option><option value="paid">Pagos / recebidos</option></select></div><div id="finance-list" class="finance-list"></div></div>
+      </section>
+      <section class="view" id="view-reports">
+        <div class="section-intro"><div><p class="eyebrow">ANÁLISE DE DESEMPENHO</p><h2>Relatórios gerenciais</h2><p class="muted">Indicadores do mês atual calculados a partir dos pedidos e lançamentos financeiros.</p></div></div>
+        <div class="stats" id="report-stats"></div>
+        <div class="content-grid"><div class="panel"><div class="panel-head"><div><p class="eyebrow">PRODUTOS</p><h2>Mais vendidos</h2></div></div><div id="top-products" class="report-list"></div></div><div class="panel"><div class="panel-head"><div><p class="eyebrow">PAGAMENTOS</p><h2>Vendas por forma de pagamento</h2></div></div><div id="payment-report" class="report-list"></div></div></div>
+        <div class="panel"><div class="panel-head"><div><p class="eyebrow">OPERAÇÃO</p><h2>Resumo de pedidos por etapa</h2></div></div><div id="status-report" class="report-list"></div></div>
       </section>
       <section class="view" id="view-settings">
-        <form id="settings-form" class="panel"><div class="panel-head"><div><p class="eyebrow">DADOS DA LOJA</p><h2>Configurações do cardápio</h2></div></div>
-        <div class="form-grid"><label>Nome da loja<input id="store-name" maxlength="100" required></label><label>WhatsApp (somente números)<input id="store-whatsapp" inputmode="numeric"></label><label>Fuso horário<input id="store-timezone" value="America/Maceio"></label></div>
-        <label class="check"><input id="accepting-orders" type="checkbox"> Aceitando pedidos</label><label class="check"><input id="hours-enabled" type="checkbox"> Restringir pedidos por horário</label>
-        <div class="hours-grid" id="hours-grid"></div><div class="form-actions"><button class="button primary" type="submit">Salvar configurações</button></div></form>
-        <div class="panel"><div class="panel-head"><div><p class="eyebrow">ENTREGA</p><h2>Taxas por bairro</h2></div></div><form id="rate-form" class="rate-form"><label>Bairro<input id="rate-neighborhood" required></label><label>Taxa (R$)<input id="rate-fee" type="number" min="0" step="0.01" required></label><button class="button primary" type="submit">Adicionar taxa</button></form><div id="rates-list" class="rates-list"></div></div>
+        <div class="section-intro"><div><p class="eyebrow">PREFERÊNCIAS DA LOJA</p><h2>Configurações</h2><p class="muted">Dados públicos, funcionamento, horários e taxas de entrega.</p></div></div>
+        <form id="settings-form" class="panel"><div class="panel-head"><div><p class="eyebrow">DADOS DA LOJA</p><h2>Cardápio e atendimento</h2></div></div>
+          <div class="form-grid"><label>Nome da loja<input id="store-name" maxlength="100" required></label><label>WhatsApp (somente números)<input id="store-whatsapp" inputmode="numeric"></label><label>Fuso horário<input id="store-timezone" value="America/Maceio"></label></div>
+          <label class="check"><input id="accepting-orders" type="checkbox"> Aceitando pedidos</label><label class="check"><input id="hours-enabled" type="checkbox"> Restringir pedidos por horário</label>
+          <div class="hours-grid" id="hours-grid"></div><div class="form-actions"><button class="button primary" type="submit">Salvar configurações</button></div>
+        </form>
+        <div class="panel"><div class="panel-head"><div><p class="eyebrow">LOGÍSTICA</p><h2>Taxas por bairro</h2></div></div><form id="rate-form" class="rate-form"><label>Bairro<input id="rate-neighborhood" required></label><label>Taxa (R$)<input id="rate-fee" type="number" min="0" step="0.01" required></label><button class="button primary" type="submit">Adicionar taxa</button></form><div id="rates-list" class="rates-list"></div></div>
       </section>
     </section>
   </main>
