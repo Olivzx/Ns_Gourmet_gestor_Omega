@@ -90,7 +90,7 @@ async function handleAdmin(request, env) {
     try { input = await request.json(); } catch { return json({ error: "Informe e-mail e senha." }, 400); }
     const email = String(input?.email || "").trim().toLowerCase();
     const password = typeof input?.password === "string" ? input.password : "";
-    if (email !== String(env.SUPABASE_ADMIN_EMAIL).trim().toLowerCase() || !password) return json({ error: "E-mail ou senha incorretos." }, 401);
+    if (email !== ADMIN_EMAIL.toLowerCase() || !password) return json({ error: "E-mail ou senha incorretos." }, 401);
     const response = await fetch(String(env.SUPABASE_URL).replace(/\/$/, "") + "/auth/v1/token?grant_type=password", {
       method: "POST", headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, authorization: "Bearer " + env.SUPABASE_SERVICE_ROLE_KEY,
         "content-type": "application/json" }, body: JSON.stringify({ email, password })
