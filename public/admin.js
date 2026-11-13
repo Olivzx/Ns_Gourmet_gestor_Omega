@@ -11,7 +11,8 @@ let data={orders:[],products:[],settings:null,rates:[],finance:[],categories:[],
 const money=c=>(Number(c||0)/100).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const localDate=()=>{const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-");};
-const dateLabel=v=>v?new Date(v).toLocaleDateString("pt-BR"):"—";
+const dateLabel=v=>{if(!v)return "—";const raw=String(v);const d=new Date(/^\\d{4}-\\d{2}-\\d{2}$/.test(raw)?raw+"T12:00:00":raw);return d.toLocaleDateString("pt-BR");};
+const localDateOf=v=>{const d=new Date(v);return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-");};
 const dateTime=v=>v?new Date(v).toLocaleString("pt-BR"):"—";
 const cents=v=>Math.round(Number(v||0)*100);
 const number=v=>Number(v||0).toLocaleString("pt-BR",{maximumFractionDigits:3});
@@ -29,7 +30,7 @@ async function load(){try{data=await api("/api/admin/data");renderAll();}catch(e
 function renderAll(){renderOverview();renderOrders();renderDeliveries();renderProducts();renderCustomers();renderInventory();renderFinance();renderReports();renderSettings();}
 function renderOverview(){
  const orders=data.orders||[],paid=monthEntries(),s=sums(paid),pendingOrders=orders.filter(o=>["received","preparing","ready"].includes(o.status)).length;
- const today=localDate(),todayOrders=orders.filter(o=>String(o.created_at||"").slice(0,10)===today),low=(data.inventory||[]).filter(i=>i.active&&Number(i.quantity_on_hand)<=Number(i.minimum_quantity));
+ const today=localDate(),todayOrders=orders.filter(o=>localDateOf(o.created_at)===today),low=(data.inventory||[]).filter(i=>i.active&&Number(i.quantity_on_hand)<=Number(i.minimum_quantity));
  $("#today-label").textContent=new Date().toLocaleDateString("pt-BR",{weekday:"long",day:"2-digit",month:"long"});
  $("#overview-stats").innerHTML=[stat("Pedidos em aberto",pendingOrders,"Aguardando conclusão"),stat("Pedidos de hoje",todayOrders.length,"Todos os canais"),stat("Receitas recebidas no mês",money(s.income),"Lançamentos efetivamente pagos"),stat("Saldo do mês",money(s.income-s.expense),"Receitas menos despesas pagas")].join("");
  $("#overview-finance").innerHTML=[["Receitas recebidas",s.income],["Despesas pagas",s.expense],["Resultado do mês",s.income-s.expense]].map(x=>'<div class="finance-metric"><small>'+x[0]+'</small><b>'+money(x[1])+'</b></div>').join("");
