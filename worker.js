@@ -178,8 +178,10 @@ async function handleAdmin(request, env) {
       if (!body.id || !body.name || !body.category || !Number.isSafeInteger(body.unit_price_cents) || body.unit_price_cents < 0 || !Number.isSafeInteger(Number(body.cost_price_cents || 0)) || Number(body.cost_price_cents || 0) < 0) return json({ error: "Preencha nome, categoria e preços válidos." }, 400);
       const prep = body.prep_minutes === null || body.prep_minutes === "" || body.prep_minutes === undefined ? null : Number(body.prep_minutes);
       if (prep !== null && (!Number.isInteger(prep) || prep < 0)) return json({ error: "Tempo de preparo inválido." }, 400);
+      const lastPosition = await supabaseRest(env, "public_order_products?select=sort_order&order=sort_order.desc&limit=1");
+      const nextPosition = Number(lastPosition?.[0]?.sort_order || 0) + 1;
       const result = await supabaseRest(env, "public_order_products", "POST", {
-        id: String(body.id).slice(0,120), name: String(body.name).trim().slice(0,120),
+        id: String(body.id).slice(0,120), sort_order: nextPosition, name: String(body.name).trim().slice(0,120),
         category: String(body.category).trim().slice(0,60), description: String(body.description || "").slice(0,600),
         sku: body.sku ? String(body.sku).trim().slice(0,60) : null,
         unit_price_cents: body.unit_price_cents, cost_price_cents: Number(body.cost_price_cents || 0),
