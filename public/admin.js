@@ -78,7 +78,7 @@ function drawEditedProductImage(canvas){
 }
 function previewProductImage(){
  const holder=$("#product-image-preview"),url=$("#product-image").value.trim();
- if(pendingImage){holder.innerHTML='<canvas id="product-image-canvas" width="480" height="360" aria-label="Prévia editável da capa"></canvas>';drawEditedProductImage($("#product-image-canvas"));return;}
+ if(pendingImage){holder.innerHTML='<canvas id="product-image-canvas" width="360" height="360" aria-label="Prévia editável da capa"></canvas>';drawEditedProductImage($("#product-image-canvas"));return;}
  holder.innerHTML=url?'<img src="'+esc(url)+'" alt="Prévia do produto" onerror="this.remove();this.parentNode.innerHTML=\'<span>Não foi possível carregar a imagem</span>\'">':'<span>Prévia da imagem</span>';
 }
 function updateMargin(){const price=cents($("#product-price").value),cost=cents($("#product-cost").value),margin=price-cost,pct=price>0?Math.round(margin/price*100):0;$("#product-margin").textContent=price>0?"Margem bruta estimada: "+money(margin)+" ("+pct+"% do preço de venda).":"Informe o preço de venda e o custo para calcular a margem estimada.";}
@@ -144,7 +144,7 @@ $("#product-form").addEventListener("submit",async e=>{e.preventDefault();const 
   const uploaded=await response.json().catch(()=>({}));if(!response.ok)throw new Error(uploaded.error||"Falha ao enviar a imagem.");imageUrl=uploaded.url;
  }
  const payload={id:id||$("#product-name").value.toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,""),name:$("#product-name").value.trim(),category:$("#product-category").value.trim(),description:$("#product-description").value.trim(),sku:$("#product-sku").value.trim()||null,unit_price_cents:price,cost_price_cents:cost,prep_minutes:prep===""?null:Number(prep),image_url:imageUrl,available:$("#product-available").checked};
- await api("/api/admin/products"+(id?"/"+encodeURIComponent(id):""),{method:id?"PATCH":"POST",body:JSON.stringify(payload)});$("#product-form").hidden=true;notice("Produto salvo com sucesso.");pendingImageFile=null;pendingImage=null;await load();
+ await api("/api/admin/products"+(id?"/"+encodeURIComponent(id):""),{method:id?"PATCH":"POST",body:JSON.stringify(payload)});$("#product-form").hidden=true;notice("Produto salvo com sucesso.");pendingImageFile=null;pendingImage=null;if(pendingImageObjectUrl){URL.revokeObjectURL(pendingImageObjectUrl);pendingImageObjectUrl=null;}$("#product-image-file").value="";await load();
  }catch(err){notice(err.message,true);}
 });
 $("#product-image").addEventListener("input",()=>{pendingImageFile=null;pendingImage=null;if(pendingImageObjectUrl){URL.revokeObjectURL(pendingImageObjectUrl);pendingImageObjectUrl=null;}$("#product-image-file").value="";previewProductImage();});
