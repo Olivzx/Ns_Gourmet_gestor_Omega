@@ -8,7 +8,7 @@ const { test } = require("node:test");
 const root = __dirname;
 const html = fs.readFileSync(path.join(root, "pedido.html"), "utf8");
 const js = fs.readFileSync(path.join(root, "pedido.js"), "utf8");
-const css = fs.readFileSync(path.join(root, "pedido.css"), "utf8");
+const css = fs.readFileSync(path.join(root, "pedido.css"), "utf8");\nconst adminHtml = fs.readFileSync(path.join(root, "public/admin.html"), "utf8");\nconst adminJs = fs.readFileSync(path.join(root, "public/admin.js"), "utf8");
 
 test("o script do cardápio público tem sintaxe JavaScript válida", () => {
   assert.doesNotThrow(() => new vm.Script(js));
@@ -57,4 +57,23 @@ test("o carrinho móvel tem controles acessíveis e foco contido no diálogo", (
 test("a interface respeita a preferência de movimento reduzido", () => {
   assert.ok(css.includes("prefers-reduced-motion:reduce") || css.includes("prefers-reduced-motion: reduce"));
   assert.ok(js.includes('matchMedia("(prefers-reduced-motion: reduce)")'));
+});
+
+
+test("o painel administrativo mantém busca rápida por produto, categoria, SKU e descrição", () => {
+  assert.match(adminHtml, /id="product-search"/);
+  assert.match(adminHtml, /id="product-category-filter"/);
+  assert.match(adminHtml, /id="product-list-count"/);
+  assert.match(adminJs, /normalizeSearch\(\[p\.name,p\.category,p\.sku,p\.description\]/);
+  assert.match(adminJs, /product-search.*addEventListener/);
+});
+
+test("a reordenação manual fica protegida enquanto a lista estiver filtrada", () => {
+  assert.match(adminJs, /if\(!term\|\|searchable\.includes\(term\)\)\&\&\(!category\|\|p\.category===category\)/);
+  assert.match(adminJs, /Limpe a busca e o filtro para reorganizar/);
+});
+
+test("a atualização automática do painel reduz consultas e mantém atualização ao voltar para a aba", () => {
+  assert.match(adminJs, /setInterval\(refreshOrdersSilently,10000\)/);
+  assert.match(adminJs, /document\.addEventListener\("visibilitychange"/);
 });
