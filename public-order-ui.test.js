@@ -84,3 +84,15 @@ test("o painel atualiza dados em intervalo moderado e ao voltar para a aba", () 
   assert.ok(adminJs.includes('setInterval(refreshOrdersSilently,10000)'));
   assert.ok(adminJs.includes('document.addEventListener("visibilitychange"'));
 });
+
+test("o gestor permite imprimir comandas em bobinas térmicas de 58 mm e 80 mm", () => {
+  assert.ok(adminHtml.includes('id="thermal-paper-width"'));
+  assert.ok(adminHtml.includes('<option value="80">80 mm</option>'));
+  assert.ok(adminHtml.includes('<option value="58">58 mm</option>'));
+  assert.ok(adminJs.includes('data-print-order='));
+  assert.ok(adminJs.includes('function printOrder(id)'));
+  assert.ok(adminJs.includes('window.open("", "_blank"'));
+  assert.ok(adminJs.includes("order.notes"));
+  assert.ok(adminJs.includes("omega_thermal_paper_width"));
+  assert.ok(adminCss.includes(".order-print-button"));
+});
