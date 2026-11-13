@@ -169,7 +169,7 @@ async function handleAdmin(request, env) {
         await supabaseRest(env, "public_order_products?id=eq." + encodeURIComponent(productIds[i]), "PATCH", { sort_order: i + 1 });
       }
       for (let i = 0; i < categoryNames.length; i++) {
-        await supabaseRest(env, "admin_menu_categories?on_conflict=name", "POST", { name: categoryNames[i], sort_order: i + 1 }, { prefer: "resolution=merge-duplicates" });
+        await supabaseRest(env, "admin_menu_categories?on_conflict=name", "POST", { name: categoryNames[i], sort_order: i + 1 });
       }
       return json({ ok: true });
     }
