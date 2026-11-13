@@ -333,7 +333,55 @@ async function handleOrder(request, env) {
   if (!order || typeof order !== "object" || Array.isArray(order)) return json({ error: "Dados do pedido inválidos." }, 400);
   try {
     const result = await supabaseRpc(env, "create_public_order", { p_order: order });
-    return json({ ok: true, demo: false, orderId: result?.orderId, totalCents: result?.totalCents, duplicate: Boolean(result?.duplicate) }, result?.duplicate ? 200 : 201);
+    let whatsappUrl = null;
+    let whatsappConfigured = false;
+    try {
+      const menu = await supabaseRpc(env, "public_order_menu");
+      const whatsapp = String(menu?.whatsapp || "").replace(/\\D/g, "");
+      whatsappConfigured = whatsapp.length >= 10;
+      if (whatsappConfigured) {
+        const products = Array.isArray(menu?.products) ? menu.products : [];
+        const productById = new Map(products.map(product => [String(product.id), product]));
+        const items = (Array.isArray(order.items) ? order.items : []).map(item => {
+          const product = productById.get(String(item.productId));
+          const quantity = Math.max(0, Number(item.quantity) || 0);
+          return quantity ? `• ${quantity}x ${product?.name || "Produto"}` : null;
+        }).filter(Boolean);
+        const subtotal = (Array.isArray(order.items) ? order.items : []).reduce((sum, item) => {
+          const product = productById.get(String(item.productId));
+          return sum + (Number(product?.unitPriceCents) || 0) * (Number(item.quantity) || 0);
+        }, 0);
+        const freight = Math.max(0, Number(result?.totalCents || 0) - subtotal);
+        const fulfillment = order.fulfillmentType === "delivery" ? "ENTREGA" : "RETIRADA";
+        const paymentLabels = { pix: "Pix", cash: "Dinheiro", debit: "Débito", credit: "Crédito", transfer: "Transferência", other: "Outro" };
+        const message = [
+          "*NOVO PEDIDO — NS GOURMET*",
+          `Pedido: #${String(result?.orderId || "").replace(/-/g, "").slice(0, 8).toUpperCase()}`,
+          "",
+          `Cliente: ${String(order.customerName || "").trim()}`,
+          `Telefone: ${String(order.phone || "").trim() || "Não informado"}`,
+          `Modalidade: ${fulfillment}`,
+          order.fulfillmentType === "delivery" ? `Endereço: ${String(order.address || "").trim()}` : null,
+          order.fulfillmentType === "delivery" ? `Bairro: ${String(order.neighborhood || "").trim()}` : null,
+          "",
+          "*ITENS*",
+          ...(items.length ? items : ["• Itens do pedido"]),
+          "",
+          `Subtotal: R$ ${(subtotal / 100).toFixed(2).replace(".", ",")}`,
+          order.fulfillmentType === "delivery" ? `Frete: R$ ${(freight / 100).toFixed(2).replace(".", ",")}` : null,
+          `*TOTAL: R$ ${(Number(result?.totalCents || 0) / 100).toFixed(2).replace(".", ",")}*`,
+          `Pagamento: ${paymentLabels[order.paymentMethod] || order.paymentMethod || "Não informado"}`,
+          order.notes ? `Observações: ${String(order.notes).trim()}` : null
+        ].filter(value => value !== null).join("\\n");
+        whatsappUrl = "https://wa.me/" + whatsapp + "?text=" + encodeURIComponent(message);
+      }
+    } catch (whatsappError) {
+      console.error("Pedido registrado, mas não foi possível preparar o link do WhatsApp:", whatsappError);
+    }
+    return json({
+      ok: true, demo: false, orderId: result?.orderId, totalCents: result?.totalCents,
+      duplicate: Boolean(result?.duplicate), whatsappUrl, whatsappConfigured
+    }, result?.duplicate ? 200 : 201);
   } catch (error) {
     if (error.status === 503) return json({ error: error.message }, 503);
     const message = String(error.message || "");
