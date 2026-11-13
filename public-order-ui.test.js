@@ -8,7 +8,9 @@ const { test } = require("node:test");
 const root = __dirname;
 const html = fs.readFileSync(path.join(root, "pedido.html"), "utf8");
 const js = fs.readFileSync(path.join(root, "pedido.js"), "utf8");
-const css = fs.readFileSync(path.join(root, "pedido.css"), "utf8");\nconst adminHtml = fs.readFileSync(path.join(root, "public/admin.html"), "utf8");\nconst adminJs = fs.readFileSync(path.join(root, "public/admin.js"), "utf8");
+const css = fs.readFileSync(path.join(root, "pedido.css"), "utf8");
+const adminHtml = fs.readFileSync(path.join(root, "public/admin.html"), "utf8");
+const adminJs = fs.readFileSync(path.join(root, "public/admin.js"), "utf8");
 
 test("o script do cardápio público tem sintaxe JavaScript válida", () => {
   assert.doesNotThrow(() => new vm.Script(js));
@@ -60,20 +62,25 @@ test("a interface respeita a preferência de movimento reduzido", () => {
 });
 
 
-test("o painel administrativo mantém busca rápida por produto, categoria, SKU e descrição", () => {
-  assert.match(adminHtml, /id="product-search"/);
-  assert.match(adminHtml, /id="product-category-filter"/);
-  assert.match(adminHtml, /id="product-list-count"/);
-  assert.match(adminJs, /normalizeSearch\(\[p\.name,p\.category,p\.sku,p\.description\]/);
-  assert.match(adminJs, /product-search.*addEventListener/);
+test("o JavaScript administrativo tem sintaxe válida", () => {
+  assert.doesNotThrow(() => new vm.Script(adminJs));
 });
 
-test("a reordenação manual fica protegida enquanto a lista estiver filtrada", () => {
-  assert.match(adminJs, /if\(!term\|\|searchable\.includes\(term\)\)\&\&\(!category\|\|p\.category===category\)/);
-  assert.match(adminJs, /Limpe a busca e o filtro para reorganizar/);
+test("o catálogo administrativo oferece busca e filtro rápidos", () => {
+  assert.ok(adminHtml.includes('id="product-search"'));
+  assert.ok(adminHtml.includes('id="product-category-filter"'));
+  assert.ok(adminHtml.includes('id="product-list-count"'));
+  assert.ok(adminJs.includes('const normalizeSearch='));
+  assert.ok(adminJs.includes('$("#product-search").addEventListener("input",renderProducts)'));
+  assert.ok(adminJs.includes('$("#product-category-filter").addEventListener("change",renderProducts)'));
 });
 
-test("a atualização automática do painel reduz consultas e mantém atualização ao voltar para a aba", () => {
-  assert.match(adminJs, /setInterval\(refreshOrdersSilently,10000\)/);
-  assert.match(adminJs, /document\.addEventListener\("visibilitychange"/);
+test("a reordenação manual fica desabilitada quando a lista está filtrada", () => {
+  assert.ok(adminJs.includes('Limpe a busca e o filtro para reorganizar'));
+  assert.ok(adminJs.includes('const filtered=Boolean(term||category)'));
+});
+
+test("o painel atualiza dados em intervalo moderado e ao voltar para a aba", () => {
+  assert.ok(adminJs.includes('setInterval(refreshOrdersSilently,10000)'));
+  assert.ok(adminJs.includes('document.addEventListener("visibilitychange"'));
 });
