@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#3A12B1">
+  <meta name="description" content="Conheça o cardápio da NS Gourmet, escolha seus favoritos e faça seu pedido online com praticidade.">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="/pedido.css">
+  <title>Faça seu pedido | NS Gourmet</title>
+</head>
+<body>
+  <div id="demo-ribbon" class="demo-ribbon" hidden>PRÉVIA LOCAL · DADOS DE DEMONSTRAÇÃO</div>
+  <header class="order-header">
+    <a href="https://www.instagram.com/nsgourmetaju/" class="order-back" target="_blank" rel="noopener noreferrer" aria-label="Visitar o Instagram da NS Gourmet">↗ <span>Instagram</span></a>
+    <a href="/pedido" class="order-brand" aria-label="NS Gourmet — início do cardápio"><span class="order-brand-mark">NS</span><span><strong id="store-brand-name">NS Gourmet</strong><small>Feito com carinho</small></span></a>
+    <span class="order-no-account">Sem cadastro</span>
+    <button id="mobile-cart-trigger" class="mobile-cart-trigger" type="button" aria-label="Abrir carrinho de compras, cesta vazia" aria-haspopup="dialog" aria-controls="mobile-cart-overlay">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M3 3h2l2.2 11.1a2 2 0 0 0 2 1.6h7.9a2 2 0 0 0 1.9-1.4L21 7H6"></path>
+        <circle cx="10" cy="19.5" r="1.3"></circle>
+        <circle cx="18" cy="19.5" r="1.3"></circle>
+      </svg>
+      <span id="mobile-cart-count" class="mobile-cart-count" hidden>0</span>
+    </button>
+  </header>
+
+  <div id="mobile-cart-overlay" class="mobile-cart-overlay" hidden>
+    <button id="mobile-cart-backdrop" class="mobile-cart-backdrop" type="button" aria-label="Fechar carrinho"></button>
+    <section class="mobile-cart-drawer" role="dialog" aria-modal="true" aria-labelledby="mobile-cart-title" tabindex="-1">
+      <div class="mobile-cart-drawer-header">
+        <div><p class="order-eyebrow">SELEÇÃO</p><h2 id="mobile-cart-title">Sua cestinha</h2></div>
+        <button id="mobile-cart-close" class="mobile-cart-close" type="button" aria-label="Fechar carrinho">×</button>
+      </div>
+      <p class="mobile-cart-caption">Confira os produtos e as quantidades que você escolheu.</p>
+      <div id="mobile-cart-items" class="mobile-cart-items" aria-live="polite" aria-relevant="additions text"><p class="cart-empty">Sua cestinha está vazia. Adicione um produto do cardápio.</p></div>
+      <div class="mobile-cart-totals">
+        <div class="cart-total-row"><span>Produtos</span><strong id="mobile-cart-subtotal">R$ 0,00</strong></div>
+        <div class="cart-total-row"><span>Frete</span><strong id="mobile-cart-freight">R$ 0,00</strong></div>
+        <div class="cart-grand-total"><span>Total</span><strong id="mobile-cart-total">R$ 0,00</strong></div>
+      </div>
+      <button id="mobile-cart-continue" class="mobile-cart-continue" type="button" disabled>Continuar para os dados <span aria-hidden="true">→</span></button>
+      <p class="mobile-cart-footnote">O valor do frete depende do bairro selecionado.</p>
+    </section>
+  </div>
+
+  <main class="order-page">
+    <section class="order-intro">
+      <div class="hero-copy">
+        <p class="order-eyebrow">UM CARINHO EM CADA DETALHE</p>
+        <h1>Seu próximo momento especial começa com um sabor.</h1>
+        <p>Descubra nosso cardápio, escolha seus favoritos e receba em casa ou retire com a gente. Tudo simples, gostoso e sem cadastro.</p>
+        <a class="hero-cta" href="#menu-section">Explorar cardápio <span aria-hidden="true">↓</span></a>
+        <div class="order-promise"><span>✓</span> Preços e frete confirmados antes de registrar o pedido</div>
+      </div>
+      <div class="hero-art" aria-hidden="true">
+        <div class="hero-orbit hero-orbit-one"></div><div class="hero-orbit hero-orbit-two"></div>
+        <div class="hero-sticker"><span>feito</span><strong>com<br>carinho</strong><i>♡</i></div>
+        <div class="hero-spark hero-spark-one">✦</div><div class="hero-spark hero-spark-two">✧</div>
+      </div>
+    </section>
+
+    <section id="business-hours-panel" class="business-hours-panel" aria-live="polite">
+      <div class="business-hours-public-head">
+        <div>
+          <p class="order-eyebrow">HORÁRIO DE ATENDIMENTO</p>
+          <strong id="business-hours-status">Consultando horário da loja…</strong>
+          <p id="business-hours-detail">Confira os dias e horários antes de concluir seu pedido.</p>
+        </div>
+        <span id="business-hours-badge" class="business-hours-public-badge">Carregando</span>
+      </div>
+      <div id="business-hours-list" class="business-hours-public-list"></div>
+    </section>
+    <div class="order-layout">
+      <section id="menu-section" class="menu-panel">
+        <div class="panel-heading"><div><p class="order-eyebrow">ESCOLHA SEUS FAVORITOS</p><h2>Nosso cardápio</h2></div><span id="menu-count" class="menu-count">Carregando…</span></div>
+        <div class="menu-tools">
+          <label class="menu-search" for="menu-search">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"></circle><path d="m16 16 5 5"></path></svg>
+            <input id="menu-search" type="search" placeholder="Buscar um produto..." autocomplete="off">
+          </label>
+          <div id="menu-categories" class="menu-categories" aria-label="Filtrar por categoria"></div>
+        </div>
+        <div id="menu-status" class="order-status" role="status" aria-live="polite">Carregando cardápio…</div>
+        <div id="menu-grid" class="menu-grid" aria-label="Produtos do cardápio"></div>
+      </section>
+      <aside class="checkout-panel" aria-label="Finalizar pedido">
+        <div class="panel-heading"><div><p class="order-eyebrow">ÚLTIMA ETAPA</p><h2>Finalize seu pedido</h2></div><span class="checkout-step">Checkout</span></div>
+        <p class="checkout-intro">Preencha seus dados, escolha como receber e confira o resumo. Seu pedido só será registrado depois da confirmação.</p>
+        <form id="public-order-form">
+          <div class="field"><label for="customer-name">Seu nome *</label><input id="customer-name" name="customerName" maxlength="120" autocomplete="name" required placeholder="Nome e sobrenome"></div>
+          <div class="field"><label for="customer-phone">WhatsApp para contato</label><input id="customer-phone" name="phone" type="tel" maxlength="40" autocomplete="tel" placeholder="(79) 99999-9999"></div>
+          <div class="field"><label for="fulfillment-type">Como quer receber? *</label><select id="fulfillment-type" name="fulfillmentType" required><option value="delivery">Receber por entrega</option><option value="pickup">Retirar com a loja</option></select></div>
+          <div id="delivery-fields">
+            <div class="field"><label for="customer-address">Endereço completo *</label><input id="customer-address" name="address" maxlength="180" autocomplete="street-address" placeholder="Rua, número e complemento" required></div>
+            <div class="field"><label for="customer-neighborhood">Bairro *</label><select id="customer-neighborhood" name="neighborhood" required><option value="">Carregando bairros…</option></select><small id="delivery-help" class="field-help">O frete é calculado conforme o bairro escolhido.</small></div>
+          </div>
+          <div class="field"><label for="payment-method">Forma de pagamento *</label><select id="payment-method" name="paymentMethod" required><option value="">Selecione</option><option value="pix">Pix</option><option value="cash">Dinheiro</option><option value="debit">Cartão de débito</option><option value="credit">Cartão de crédito</option></select></div>
+          <div class="field"><label for="order-notes">Observação (opcional)</label><textarea id="order-notes" name="notes" maxlength="500" rows="3" placeholder="Ex.: ponto de referência, detalhe do pedido..."></textarea></div>
+          <div class="cart-panel">
+            <div class="cart-heading"><h3>Resumo do pedido</h3><span id="cart-item-count">0 itens</span></div>
+            <div id="cart-items" class="cart-items"><p class="cart-empty">Adicione produtos do cardápio.</p></div>
+            <div class="cart-total-row"><span>Produtos</span><strong id="cart-subtotal">R$ 0,00</strong></div>
+            <div class="cart-total-row"><span>Frete</span><strong id="cart-freight">R$ 0,00</strong></div>
+            <div class="cart-grand-total"><span>Total</span><strong id="cart-total">R$ 0,00</strong></div>
+          </div>
+          <button id="submit-order" class="order-submit" type="submit" disabled>Concluir e abrir WhatsApp <span aria-hidden="true">→</span></button>
+          <p class="checkout-privacy">Seus dados serão usados para atender este pedido. Nenhum cadastro é necessário.</p>
+        </form>
+        <div id="order-confirmation" class="order-confirmation" role="status" aria-live="polite" hidden>
+          <span class="confirmation-mark">✓</span><h3>Pedido registrado!</h3>
+          <p id="confirmation-message">Seu pedido está pronto para ser enviado à NS Gourmet.</p>
+          <a id="confirmation-whatsapp" class="order-submit" href="#" target="_blank" rel="noopener noreferrer">Abrir WhatsApp e enviar pedido</a>
+          <a class="confirmation-back" href="/pedido">Fazer outro pedido</a>
+        </div>
+      </aside>
+    </div>
+    <footer class="order-footer">
+      <div class="footer-brand"><span class="order-brand-mark">NS</span><div><strong id="footer-store-name">NS Gourmet</strong><small>Feito com carinho, para compartilhar.</small></div></div>
+      <div class="footer-note"><span>Seu pedido, do seu jeito.</span><small>Consulte os horários e as opções de entrega antes de concluir.</small></div>
+      <div class="footer-links"><a href="https://instagram.com/nsgourmetaju" target="_blank" rel="noopener noreferrer">Instagram ↗</a><a href="/politica-de-privacidade.html">Privacidade</a></div>
+      <div class="footer-bottom">© <span id="footer-year">2026</span> <span id="footer-legal-name">NS Gourmet</span>. Todos os direitos reservados.</div>
+    </footer>
+  </main>
+  <script src="/pedido.js" defer></script>
+</body>
+</html>
