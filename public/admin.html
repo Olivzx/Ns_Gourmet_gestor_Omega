@@ -64,6 +64,15 @@
       </section>
       <section class="view" id="view-products">
         <div class="section-intro"><div><p class="eyebrow">CARDÁPIO E CUSTOS</p><h2>Catálogo de produtos</h2><p class="muted">Gerencie apresentação, preço de venda, custo estimado e disponibilidade do cardápio.</p></div><button id="new-product" class="button primary">＋ Novo produto</button></div>
+        <div class="menu-sort-panel panel">
+          <div class="panel-head"><div><p class="eyebrow">ORGANIZAÇÃO DA VITRINE</p><h2>Ordenação do cardápio</h2><p class="muted">Escolha critérios automáticos ou ajuste manualmente as posições.</p></div><button type="button" id="save-menu-order" class="button primary">Salvar ordem</button></div>
+          <div class="menu-sort-controls">
+            <label>Ordenar produtos<select id="product-sort-mode"><option value="manual">Manual</option><option value="name-asc">Nome: A–Z</option><option value="name-desc">Nome: Z–A</option><option value="price-asc">Preço: menor primeiro</option><option value="price-desc">Preço: maior primeiro</option><option value="date-desc">Criação: mais recentes</option><option value="date-asc">Criação: mais antigos</option></select></label>
+            <label>Ordenar categorias<select id="category-sort-mode"><option value="manual">Manual</option><option value="name-asc">Nome: A–Z</option><option value="name-desc">Nome: Z–A</option><option value="count-desc">Quantidade: maior primeiro</option><option value="count-asc">Quantidade: menor primeiro</option><option value="date-desc">Criação: mais recentes</option><option value="date-asc">Criação: mais antigas</option></select></label>
+          </div>
+          <div class="category-order-wrap"><strong>Posição das categorias</strong><p class="muted">Use as setas para mudar a sequência manualmente.</p><div id="menu-category-order" class="menu-category-order"></div></div>
+          <p class="muted">Na lista de produtos, use ↑ e ↓ para ajustar a ordem manual. A ordem salva será aplicada também ao cardápio público.</p>
+        </div>
         <div id="products-list" class="products-list"></div>
         <form id="product-form" class="panel editor" hidden>
           <div class="panel-head"><div><p class="eyebrow">CADASTRO DE PRODUTO</p><h2 id="product-form-title">Novo produto</h2></div><button type="button" id="cancel-product" class="button light">Fechar</button></div>
