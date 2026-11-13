@@ -61,10 +61,10 @@
     const city = pixText(pixSettings.city, 15);
     if (!key || !name || !city || !Number.isSafeInteger(Number(totalCents)) || Number(totalCents) <= 0) return "";
     const txid = String(orderId || "").replace(/[^a-zA-Z0-9]/g, "").slice(-25) || "***";
-    const merchant = pixField("00", "BR.GOV.BCB.PIX") + pixField("01", key);
+    const merchant = pixField("00", "br.gov.bcb.pix") + pixField("01", key);
     const additional = pixField("05", txid);
     const amount = (Number(totalCents) / 100).toFixed(2);
-    const payload = pixField("00", "01") + pixField("01", "12") + pixField("26", merchant) +
+    const payload = pixField("00", "01") + pixField("01", "11") + pixField("26", merchant) +
       pixField("52", "0000") + pixField("53", "986") + pixField("54", amount) +
       pixField("58", "BR") + pixField("59", name) + pixField("60", city) +
       pixField("62", additional) + "6304";
