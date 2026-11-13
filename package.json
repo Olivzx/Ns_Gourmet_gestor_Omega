@@ -7,7 +7,9 @@
     "dev": "node --watch mock-server.js",
     "start": "node mock-server.js",
     "check": "node --check mock-server.js && node --check pedido.js",
-    "test": "node --test"
+    "test": "node --test",
+    "cf:dev": "npx wrangler@latest dev",
+    "cf:deploy": "npx wrangler@latest deploy"
   },
   "engines": {
     "node": ">=18"
