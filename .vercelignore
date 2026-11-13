@@ -1,0 +1,11 @@
+node_modules
+.git
+.env*
+mock-server.js
+README.md
+LEIA-PRIMEIRO.txt
+INTEGRACAO-OMEGA.md
+INTEGRAR-OMEGA.ps1
+data/
+supabase/
+test/
