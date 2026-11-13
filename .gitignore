@@ -1,1 +1,3 @@
 node_modules/\n.env\n.DS_Store\nThumbs.db\ndata/demo-orders.json\n
+.dev.vars
+.wrangler/
