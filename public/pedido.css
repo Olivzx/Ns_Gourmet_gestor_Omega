@@ -331,3 +331,5 @@ body{background:radial-gradient(ellipse at 10% 0%,rgba(181,89,220,.08),transpare
 #pix-copy-paste{width:100%;resize:vertical;padding:10px;border:1px solid var(--line);border-radius:9px;background:#faf9ff;color:var(--ink);font-size:10px;overflow-wrap:anywhere}
 .pix-copy-button{margin-top:9px}
 .pix-manual-note{margin-bottom:0!important;font-size:10px!important}
+
+.pix-qr-code[hidden]{display:none}
