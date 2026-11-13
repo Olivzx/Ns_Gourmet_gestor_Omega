@@ -337,7 +337,7 @@ async function handleOrder(request, env) {
     let whatsappConfigured = false;
     try {
       const menu = await supabaseRpc(env, "public_order_menu");
-      const whatsapp = String(menu?.whatsapp || "").replace(/\\D/g, "");
+      const whatsapp = String(menu?.whatsapp || "").replace(/\D/g, "");
       whatsappConfigured = whatsapp.length >= 10;
       if (whatsappConfigured) {
         const products = Array.isArray(menu?.products) ? menu.products : [];
@@ -372,7 +372,7 @@ async function handleOrder(request, env) {
           `*TOTAL: R$ ${(Number(result?.totalCents || 0) / 100).toFixed(2).replace(".", ",")}*`,
           `Pagamento: ${paymentLabels[order.paymentMethod] || order.paymentMethod || "Não informado"}`,
           order.notes ? `Observações: ${String(order.notes).trim()}` : null
-        ].filter(value => value !== null).join("\\n");
+        ].filter(value => value !== null).join("\n");
         whatsappUrl = "https://wa.me/" + whatsapp + "?text=" + encodeURIComponent(message);
       }
     } catch (whatsappError) {
