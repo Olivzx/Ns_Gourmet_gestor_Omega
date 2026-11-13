@@ -217,7 +217,7 @@ async function handleAdmin(request, env) {
         id: true, store_name: String(body.store_name).trim().slice(0,100), whatsapp: String(body.whatsapp || "").replace(/\D/g,"").slice(0,20),
         accepting_orders: body.accepting_orders === true, business_hours_enabled: body.business_hours_enabled === true,
         business_hours: body.business_hours && typeof body.business_hours === "object" ? body.business_hours : {},
-        pix_key: String(body.pix_key || "").trim().slice(0,254) || null,
+        pix_key: String(body.pix_key || "").trim().slice(0,77) || null,
         pix_receiver_name: String(body.pix_receiver_name || "").trim().slice(0,25) || null,
         pix_city: String(body.pix_city || "").trim().slice(0,15) || null,
         time_zone: String(body.time_zone || "America/Maceio").slice(0,80), updated_at: new Date().toISOString()
