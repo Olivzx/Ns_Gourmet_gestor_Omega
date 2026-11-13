@@ -6,10 +6,11 @@
   "scripts": {
     "dev": "node --watch mock-server.js",
     "start": "node mock-server.js",
-    "check": "node --check mock-server.js && node --check pedido.js",
+    "check": "node --check mock-server.js && node --check pedido.js && node --input-type=module --check < worker.js",
     "test": "node --test",
     "cf:dev": "npx wrangler@latest dev",
-    "cf:deploy": "npx wrangler@latest deploy"
+    "cf:deploy": "npx wrangler@latest deploy",
+    "check:worker": "node --input-type=module --check < worker.js"
   },
   "engines": {
     "node": ">=18"
