@@ -68,7 +68,7 @@ function openProduct(p=null){
  $("#product-form").hidden=false;$("#product-form-title").textContent=p?"Editar produto":"Novo produto";$("#product-id").value=p?.id||"";
  $("#product-name").value=p?.name||"";$("#product-category").value=p?.category||"";$("#product-sku").value=p?.sku||"";
  $("#product-price").value=p?(Number(p.unit_price_cents)/100).toFixed(2):"";$("#product-cost").value=p?(Number(p.cost_price_cents||0)/100).toFixed(2):"0";
- $("#product-prep").value=p?.prep_minutes??"";$("#product-image").value=p?.image_url||"";$("#product-image-file").value="";pendingImageFile=null;pendingImage=null;if(pendingImageObjectUrl){URL.revokeObjectURL(pendingImageObjectUrl);pendingImageObjectUrl=null;}$("#product-image-fit").value="contain";$("#product-image-zoom").value="1";$("#product-image-x").value="50";$("#product-image-y").value="50";$("#product-description").value=p?.description||"";
+ $("#product-prep").value=p?.prep_minutes??"";$("#product-image").value=p?.image_url||"";$("#product-image-file").value="";$("#product-image-original").checked=true;updateImageEditorMode();pendingImageFile=null;pendingImage=null;if(pendingImageObjectUrl){URL.revokeObjectURL(pendingImageObjectUrl);pendingImageObjectUrl=null;}$("#product-image-fit").value="contain";$("#product-image-zoom").value="1";$("#product-image-x").value="50";$("#product-image-y").value="50";$("#product-description").value=p?.description||"";
  $("#product-available").checked=p?.available!==false;previewProductImage();updateMargin();
  $("#product-form").scrollIntoView({behavior:"smooth",block:"start"});
 }
