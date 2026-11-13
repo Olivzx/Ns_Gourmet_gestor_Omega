@@ -306,3 +306,11 @@ body{background:radial-gradient(ellipse at 10% 0%,rgba(181,89,220,.08),transpare
 /* Fotos ocupam toda a área do cardápio, com recorte proporcional */
 .menu-photo{overflow:hidden;background:#f3edf5}
 .menu-photo img{width:100%;height:100%;display:block;object-fit:cover!important;object-position:center;padding:0!important;background:transparent}
+
+
+/* Imagem realmente ocupa 100% da largura e altura do quadro do produto */
+.menu-photo{display:block!important;width:100%;height:300px;min-height:300px;padding:0!important;}
+.menu-photo img{display:block!important;width:100%!important;max-width:none!important;height:100%!important;max-height:none!important;object-fit:cover!important;object-position:center!important;padding:0!important;margin:0!important;border:0!important;border-radius:0!important;}
+@media(max-width:1050px){.menu-photo{height:270px;min-height:270px}}
+@media(max-width:760px){.menu-photo{height:230px;min-height:230px}}
+@media(max-width:420px){.menu-photo{height:210px;min-height:210px}}
