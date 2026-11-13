@@ -7,6 +7,7 @@ const paymentLabels={pending:"Pendente",paid:"Pago",refunded:"Estornado"};
 const methodLabels={pix:"Pix",cash:"Dinheiro",debit:"Débito",credit:"Crédito",transfer:"Transferência",other:"Outro"};
 const unitLabels={un:"un",kg:"kg",g:"g",l:"L",ml:"ml",pct:"pacote",cx:"caixa"};
 let token=sessionStorage.getItem("omega_admin_token")||"",user=null;
+let autoRefreshTimer=null,loading=false;
 let data={orders:[],products:[],settings:null,rates:[],finance:[],categories:[],inventory:[],movements:[]};
 const money=c=>(Number(c||0)/100).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -20,13 +21,16 @@ function notice(msg,bad=false){const n=$("#notice");n.textContent=msg;n.classNam
 async function api(path,options={}){const res=await fetch(path,{...options,headers:{"content-type":"application/json",...(token?{authorization:"Bearer "+token}:{}),...(options.headers||{})}});const body=await res.json().catch(()=>({}));if(!res.ok){if(res.status===401&&path!=="/api/admin/login")logout(false);throw new Error(body.error||body.message||"Não foi possível concluir a operação.");}return body;}
 function showLogin(){ $("#login-view").hidden=false;$("#dashboard").hidden=true;$("#logout").hidden=true;$("#refresh").hidden=true; }
 function showApp(){ $("#login-view").hidden=true;$("#dashboard").hidden=false;$("#logout").hidden=false;$("#refresh").hidden=false;$("#admin-email").textContent=user?.email||""; }
-function logout(show=true){token="";user=null;sessionStorage.removeItem("omega_admin_token");showLogin();if(show)notice("Sessão encerrada.");}
+function logout(show=true){if(autoRefreshTimer){clearInterval(autoRefreshTimer);autoRefreshTimer=null;}token="";user=null;sessionStorage.removeItem("omega_admin_token");showLogin();if(show)notice("Sessão encerrada.");}
 function monthEntries(){const now=new Date();return data.finance.filter(e=>{const raw=e.paid_at||e.due_date;if(!raw)return false;const d=new Date(raw);return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth()&&e.status==="paid";});}
 function sums(entries){return entries.reduce((a,e)=>{if(e.kind==="income")a.income+=Number(e.amount_cents||0);else a.expense+=Number(e.amount_cents||0);return a;},{income:0,expense:0});}
 function stat(label,value,note){return '<article><small>'+esc(label)+'</small><b>'+value+'</b>'+(note?'<span class="stat-note">'+esc(note)+'</span>':'')+'</article>';}
 function empty(msg){return '<p class="empty">'+esc(msg)+'</p>';}
-async function login(e){e.preventDefault();$("#login-error").textContent="";const btn=$("#login-form button[type=submit]");btn.disabled=true;try{const r=await api("/api/admin/login",{method:"POST",body:JSON.stringify({email:$("#email").value.trim(),password:$("#password").value})});token=r.access_token;user=r.user;sessionStorage.setItem("omega_admin_token",token);$("#password").value="";showApp();switchView("overview");await load();}catch(err){$("#login-error").textContent=err.message;}finally{btn.disabled=false;}}
-async function load(){try{data=await api("/api/admin/data");renderAll();}catch(e){notice(e.message,true);}}
+async function login(e){e.preventDefault();$("#login-error").textContent="";const btn=$("#login-form button[type=submit]");btn.disabled=true;try{const r=await api("/api/admin/login",{method:"POST",body:JSON.stringify({email:$("#email").value.trim(),password:$("#password").value})});token=r.access_token;user=r.user;sessionStorage.setItem("omega_admin_token",token);$("#password").value="";showApp();switchView("overview");await load();startAutoRefresh();}catch(err){$("#login-error").textContent=err.message;}finally{btn.disabled=false;}}
+async function load(){if(loading)return;loading=true;try{data=await api("/api/admin/data");renderAll();}catch(e){notice(e.message,true);}finally{loading=false;}}
+async function refreshOrdersSilently(){if(!token||document.visibilityState==="hidden"||loading)return;loading=true;try{data=await api("/api/admin/data");renderOverview();renderOrders();renderDeliveries();renderCustomers();renderFinance();renderReports();}catch(e){console.warn("Falha na atualização automática dos pedidos:",e);}finally{loading=false;}}
+function startAutoRefresh(){if(autoRefreshTimer)clearInterval(autoRefreshTimer);autoRefreshTimer=setInterval(refreshOrdersSilently,5000);}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")refreshOrdersSilently();});
 function renderAll(){renderOverview();renderOrders();renderDeliveries();renderProducts();renderCustomers();renderInventory();renderFinance();renderReports();renderSettings();}
 function renderOverview(){
  const orders=data.orders||[],paid=monthEntries(),s=sums(paid),pendingOrders=orders.filter(o=>["received","preparing","ready"].includes(o.status)).length;
@@ -143,6 +147,6 @@ $("#settings-form").addEventListener("submit",async e=>{e.preventDefault();const
 $("#hours-grid").addEventListener("change",e=>{const k=e.target.dataset.hourClosed;if(!k)return;document.querySelector('[data-hour-open="'+k+'"]').disabled=e.target.checked;document.querySelector('[data-hour-close="'+k+'"]').disabled=e.target.checked;});
 $("#rate-form").addEventListener("submit",async e=>{e.preventDefault();try{await api("/api/admin/rates",{method:"POST",body:JSON.stringify({neighborhood:$("#rate-neighborhood").value.trim(),fee_cents:cents($("#rate-fee").value),active:true})});$("#rate-form").reset();notice("Taxa adicionada.");await load();}catch(err){notice(err.message,true);}});
 $("#rates-list").addEventListener("click",async e=>{const n=e.target.dataset.deleteRate;if(n&&confirm("Remover a taxa deste bairro?")){try{await api("/api/admin/rates/"+encodeURIComponent(n),{method:"DELETE"});notice("Taxa removida.");await load();}catch(err){notice(err.message,true);}}});
-async function init(){if(!token){showLogin();return;}try{const r=await api("/api/admin/me");user=r.user;showApp();switchView("overview");await load();}catch{logout(false);}}
+async function init(){if(!token){showLogin();return;}try{const r=await api("/api/admin/me");user=r.user;showApp();switchView("overview");await load();startAutoRefresh();}catch{logout(false);}}
 init();
 })();
