@@ -30,8 +30,9 @@ jobs:
           npm test
 
       - name: Deploy Worker and public assets
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: f7eb12b8958fc3684bb1ee435e6ffdb9
+          wranglerVersion: "4.162.0"
           command: deploy
