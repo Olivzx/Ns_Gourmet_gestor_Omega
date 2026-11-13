@@ -87,6 +87,42 @@ async function handleAdmin(request, env) {
   const auth = await requireAdmin(request, env);
   if (auth.error) return auth.error;
   try {
+    if (path === "/api/admin/product-image" && request.method === "POST") {
+      const length = Number(request.headers.get("content-length") || 0);
+      if (length > 9 * 1024 * 1024) return json({ error: "A imagem excede o limite permitido de 8 MB." }, 413);
+      const form = await request.formData().catch(() => null);
+      const file = form?.get("file");
+      if (!file || typeof file.arrayBuffer !== "function") return json({ error: "Selecione uma imagem para enviar." }, 400);
+      const allowed = ["image/webp", "image/jpeg", "image/png"];
+      if (!allowed.includes(file.type)) return json({ error: "Formato inválido. Envie JPG, PNG ou WebP." }, 415);
+      if (!file.size || file.size > 8 * 1024 * 1024) return json({ error: "A imagem deve ter até 8 MB." }, 413);
+      const base = String(env.SUPABASE_URL).replace(/\/$/, "");
+      const headers = { apikey: env.SUPABASE_SERVICE_ROLE_KEY, authorization: "Bearer " + env.SUPABASE_SERVICE_ROLE_KEY };
+      const bucketUrl = base + "/storage/v1/bucket/product-images";
+      const bucketCheck = await fetch(bucketUrl, { headers });
+      if (!bucketCheck.ok) {
+        const created = await fetch(base + "/storage/v1/bucket", {
+          method: "POST", headers: { ...headers, "content-type": "application/json" },
+          body: JSON.stringify({ id: "product-images", name: "product-images", public: true, file_size_limit: 8388608, allowed_mime_types: allowed })
+        });
+        if (!created.ok && created.status !== 409) {
+          const detail = await created.json().catch(() => ({}));
+          throw new Error(detail.message || "Não foi possível preparar o armazenamento de imagens no Supabase.");
+        }
+      }
+      const extension = file.type === "image/png" ? "png" : file.type === "image/jpeg" ? "jpg" : "webp";
+      const objectName = crypto.randomUUID() + "." + extension;
+      const upload = await fetch(base + "/storage/v1/object/product-images/" + objectName, {
+        method: "POST",
+        headers: { ...headers, "content-type": file.type, "cache-control": "public, max-age=31536000, immutable", "x-upsert": "false" },
+        body: await file.arrayBuffer()
+      });
+      if (!upload.ok) {
+        const detail = await upload.json().catch(() => ({}));
+        throw new Error(detail.message || "Não foi possível salvar a imagem no Supabase Storage.");
+      }
+      return json({ ok: true, url: base + "/storage/v1/object/public/product-images/" + objectName });
+    }
     if (path === "/api/admin/me" && request.method === "GET") return json({ user: { id: auth.user.id, email: auth.user.email } });
     if (path === "/api/admin/data" && request.method === "GET") {
       const [orders, products, settings, rates, finance, categories, inventory, movements] = await Promise.all([
