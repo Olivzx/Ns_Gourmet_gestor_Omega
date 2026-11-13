@@ -137,9 +137,16 @@ $("#product-form").addEventListener("submit",async e=>{e.preventDefault();const 
  try{
  let imageUrl=$("#product-image").value.trim()||null;
  if(pendingImageFile&&pendingImage){
-  const canvas=document.createElement("canvas");canvas.width=1200;canvas.height=1200;drawEditedProductImage(canvas);
-  const blob=await new Promise(resolve=>canvas.toBlob(resolve,"image/webp",0.9));if(!blob)throw new Error("Não foi possível preparar a imagem.");
-  const formData=new FormData();formData.append("file",blob,"product-cover.webp");
+  const formData=new FormData();
+  if($("#product-image-original").checked){
+   // Envia o arquivo original, preservando dimensões, formato e qualidade.
+   formData.append("file",pendingImageFile,pendingImageFile.name);
+  }else{
+   // Os controles de enquadramento geram uma capa quadrada otimizada.
+   const canvas=document.createElement("canvas");canvas.width=1200;canvas.height=1200;drawEditedProductImage(canvas);
+   const blob=await new Promise(resolve=>canvas.toBlob(resolve,"image/webp",0.9));if(!blob)throw new Error("Não foi possível preparar a imagem.");
+   formData.append("file",blob,"product-cover.webp");
+  }
   const response=await fetch("/api/admin/product-image",{method:"POST",headers:{authorization:"Bearer "+token},body:formData});
   const uploaded=await response.json().catch(()=>({}));if(!response.ok)throw new Error(uploaded.error||"Falha ao enviar a imagem.");imageUrl=uploaded.url;
  }
@@ -149,7 +156,10 @@ $("#product-form").addEventListener("submit",async e=>{e.preventDefault();const 
 });
 $("#product-image").addEventListener("input",()=>{pendingImageFile=null;pendingImage=null;if(pendingImageObjectUrl){URL.revokeObjectURL(pendingImageObjectUrl);pendingImageObjectUrl=null;}$("#product-image-file").value="";previewProductImage();});
 $("#product-image-file").addEventListener("change",e=>{const file=e.target.files?.[0];if(!file)return;if(!["image/jpeg","image/png","image/webp"].includes(file.type)){notice("Use uma imagem JPG, PNG ou WebP.",true);e.target.value="";return;}if(file.size>8*1024*1024){notice("A imagem original deve ter no máximo 8 MB.",true);e.target.value="";return;}if(pendingImageObjectUrl)URL.revokeObjectURL(pendingImageObjectUrl);pendingImageFile=file;pendingImageObjectUrl=URL.createObjectURL(file);pendingImage=new Image();pendingImage.onload=()=>previewProductImage();pendingImage.onerror=()=>notice("Não foi possível abrir essa imagem.",true);pendingImage.src=pendingImageObjectUrl;$("#product-image").value="";});
+function updateImageEditorMode(){const original=$("#product-image-original").checked;document.querySelectorAll(".image-editor-controls select,.image-editor-controls input").forEach(control=>control.disabled=original);}
+$("#product-image-original").addEventListener("change",updateImageEditorMode);
 ["#product-image-fit","#product-image-zoom","#product-image-x","#product-image-y"].forEach(selector=>$(selector).addEventListener("input",previewProductImage));
+updateImageEditorMode();
 $("#product-price").addEventListener("input",updateMargin);$("#product-cost").addEventListener("input",updateMargin);
 $("#customer-search").addEventListener("input",renderCustomers);
 $("#inventory-item-form").addEventListener("submit",async e=>{e.preventDefault();const payload={name:$("#inventory-name").value.trim(),unit:$("#inventory-unit").value,minimum_quantity:Number($("#inventory-min").value||0),unit_cost_cents:cents($("#inventory-cost").value),notes:$("#inventory-notes").value.trim()||null};try{await api("/api/admin/inventory/items",{method:"POST",body:JSON.stringify(payload)});$("#inventory-item-form").reset();$("#inventory-min").value="0";$("#inventory-cost").value="0";notice("Item cadastrado. Registre uma entrada para lançar o saldo inicial.");await load();}catch(err){notice(err.message,true);}});
