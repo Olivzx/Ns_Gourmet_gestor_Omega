@@ -19,7 +19,7 @@ async function supabaseRpc(env, functionName, payload = {}) {
     throw error;
   }
 
-  const base = String(env.SUPABASE_URL).replace(/\\/$/, "");
+  const base = String(env.SUPABASE_URL).replace(/\/$/, "");
   const response = await fetch(
     base + "/rest/v1/rpc/" + encodeURIComponent(functionName),
     {
