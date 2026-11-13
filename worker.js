@@ -125,20 +125,21 @@ async function handleAdmin(request, env) {
     }
     if (path === "/api/admin/me" && request.method === "GET") return json({ user: { id: auth.user.id, email: auth.user.email } });
     if (path === "/api/admin/data" && request.method === "GET") {
-      const [orders, products, settings, rates, finance, categories, inventory, movements] = await Promise.all([
+      const [orders, products, settings, rates, finance, categories, inventory, movements, menuCategories] = await Promise.all([
         supabaseRest(env, "public_orders?select=*,public_order_items(*)&order=created_at.desc&limit=300"),
-        supabaseRest(env, "public_order_products?select=*&order=category.asc,name.asc"),
+        supabaseRest(env, "public_order_products?select=*&order=sort_order.asc,name.asc"),
         supabaseRest(env, "public_store_settings?select=*&id=eq.true&limit=1"),
         supabaseRest(env, "public_order_delivery_rates?select=*&order=neighborhood.asc"),
         supabaseRest(env, "admin_finance_entries?select=*,admin_finance_categories(id,name,kind)&order=due_date.desc,created_at.desc&limit=500"),
         supabaseRest(env, "admin_finance_categories?select=*&active=eq.true&order=kind.asc,name.asc"),
         supabaseRest(env, "admin_inventory_items?select=*&order=active.desc,name.asc"),
-        supabaseRest(env, "admin_stock_movements?select=*,admin_inventory_items(name,unit)&order=created_at.desc&limit=80")
+        supabaseRest(env, "admin_stock_movements?select=*,admin_inventory_items(name,unit)&order=created_at.desc&limit=80"),
+        supabaseRest(env, "admin_menu_categories?select=*&order=sort_order.asc,name.asc")
       ]);
       return json({
         orders: orders || [], products: products || [], settings: settings?.[0] || null,
         rates: rates || [], finance: finance || [], categories: categories || [],
-        inventory: inventory || [], movements: movements || []
+        inventory: inventory || [], movements: movements || [], menuCategories: menuCategories || []
       });
     }
     let match = path.match(/^\/api\/admin\/orders\/([0-9a-f-]+)\/payment$/i);
@@ -158,6 +159,19 @@ async function handleAdmin(request, env) {
       const result = await supabaseRest(env, "public_orders?id=eq." + encodeURIComponent(match[1]), "PATCH", { status: body.status });
       if (!result?.length) return json({ error: "Pedido não encontrado." }, 404);
       return json({ ok: true, order: result[0] });
+    }
+    if (path === "/api/admin/menu-order" && request.method === "POST") {
+      const body = await request.json().catch(() => ({}));
+      const productIds = Array.isArray(body.productIds) ? body.productIds.map(String) : [];
+      const categoryNames = Array.isArray(body.categoryNames) ? body.categoryNames.map(v => String(v).trim().slice(0,60)).filter(Boolean) : [];
+      if (productIds.length > 500 || categoryNames.length > 100) return json({ error: "Lista de ordenação muito grande." }, 400);
+      for (let i = 0; i < productIds.length; i++) {
+        await supabaseRest(env, "public_order_products?id=eq." + encodeURIComponent(productIds[i]), "PATCH", { sort_order: i + 1 });
+      }
+      for (let i = 0; i < categoryNames.length; i++) {
+        await supabaseRest(env, "admin_menu_categories?on_conflict=name", "POST", { name: categoryNames[i], sort_order: i + 1 }, { prefer: "resolution=merge-duplicates" });
+      }
+      return json({ ok: true });
     }
     if (path === "/api/admin/products" && request.method === "POST") {
       const body = await request.json().catch(() => ({}));
