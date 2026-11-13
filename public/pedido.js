@@ -52,8 +52,8 @@
     return crc.toString(16).toUpperCase().padStart(4, "0");
   }
   function pixText(value, maxLength) {
-    return String(value || "").normalize("NFD").replace(/[\\u0300-\\u036f]/g, "")
-      .toUpperCase().replace(/[^A-Z0-9 .-]/g, " ").replace(/\\s+/g, " ").trim().slice(0, maxLength);
+    return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .toUpperCase().replace(/[^A-Z0-9 .-]/g, " ").replace(/\s+/g, " ").trim().slice(0, maxLength);
   }
   function buildPixPayload(orderId, totalCents) {
     const key = String(pixSettings.key || "").trim();
