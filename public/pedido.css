@@ -314,3 +314,20 @@ body{background:radial-gradient(ellipse at 10% 0%,rgba(181,89,220,.08),transpare
 @media(max-width:1050px){.menu-photo{height:270px;min-height:270px}}
 @media(max-width:760px){.menu-photo{height:230px;min-height:230px}}
 @media(max-width:420px){.menu-photo{height:210px;min-height:210px}}
+
+
+.pix-payment{margin-top:18px;padding:18px;border:1px solid var(--line);border-radius:15px;background:#fff;text-align:center;color:var(--ink)}
+.pix-payment[hidden]{display:none}
+.pix-payment h4{margin:0 0 8px;color:var(--rose-dark);font-size:16px}
+.pix-payment p{font-size:12px;line-height:1.55;color:var(--muted)}
+.pix-payment-total strong{color:var(--rose);font-size:19px}
+.pix-qr-code{display:block;width:min(240px,100%);height:auto;aspect-ratio:1;margin:14px auto;padding:8px;border:1px solid var(--line);border-radius:12px;background:#fff}
+.pix-beneficiary{margin:8px 0}
+.pix-key-line{display:grid;gap:6px;padding:11px;border:1px solid var(--line);border-radius:10px;text-align:left;overflow-wrap:anywhere}
+.pix-key-line span,.pix-copy-label{font-size:10px;font-weight:800;color:var(--muted)}
+.pix-key-line strong{font-size:12px}
+.pix-key-line button{justify-self:start;border:0;border-radius:8px;padding:8px 11px;background:var(--rose-soft);color:var(--rose);font-weight:800;font-size:11px}
+.pix-copy-label{display:block;margin:13px 0 6px;text-align:left}
+#pix-copy-paste{width:100%;resize:vertical;padding:10px;border:1px solid var(--line);border-radius:9px;background:#faf9ff;color:var(--ink);font-size:10px;overflow-wrap:anywhere}
+.pix-copy-button{margin-top:9px}
+.pix-manual-note{margin-bottom:0!important;font-size:10px!important}
