@@ -277,3 +277,7 @@ body{background:radial-gradient(ellipse at 10% 0%,rgba(181,89,220,.08),transpare
   .panel-heading { align-items: flex-start; }
   .panel-heading h2 { font-size: 18px; }
 }
+
+/* Capas de produto: preservar a foto inteira sem deformar nem cortar */
+.menu-photo{background:#f8eff1}
+.menu-photo img{object-fit:contain!important;padding:7px;background:#f8eff1}
