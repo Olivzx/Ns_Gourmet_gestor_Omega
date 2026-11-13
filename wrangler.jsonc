@@ -9,7 +9,8 @@
     "run_worker_first": [
       "/api/*",
       "/",
-      "/pedido"
+      "/pedido",
+      "/admin"
     ]
   },
   "observability": {
