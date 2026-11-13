@@ -1,14 +1,21 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "ns-gourmet-omega",
+  "name": "ns-gourmet-gestor-omega",
   "main": "worker.js",
   "compatibility_date": "2026-11-13",
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
-    "run_worker_first": ["/api/*", "/", "/pedido"]
+    "run_worker_first": [
+      "/api/*",
+      "/",
+      "/pedido"
+    ]
   },
   "observability": {
     "enabled": true
+  },
+  "vars": {
+    "SUPABASE_URL": "https://kluxlinnqtlitnbwafdj.supabase.co"
   }
 }
