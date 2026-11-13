@@ -64,7 +64,7 @@
   ];
   function renderBusinessHours(value) {
     businessHours = value && typeof value === "object" ? value : { enabled: false, isOpen: true, days: {} };
-    storeIsOpen = businessHours.enabled !== true || businessHours.isOpen !== false;
+    storeIsOpen = businessHours.isOpen !== false;
     const panel = $("#business-hours-panel");
     const status = $("#business-hours-status");
     const detail = $("#business-hours-detail");
@@ -72,10 +72,10 @@
     const list = $("#business-hours-list");
     panel.hidden = false;
     if (businessHours.enabled !== true) {
-      status.textContent = "Horários ainda não cadastrados";
-      detail.textContent = "A loja ainda não informou os horários. Os pedidos online continuam disponíveis.";
-      badge.textContent = "Disponível online";
-      badge.className = "business-hours-public-badge is-open";
+      status.textContent = storeIsOpen ? "Horários ainda não cadastrados" : "A loja não está aceitando pedidos agora";
+      detail.textContent = storeIsOpen ? "A loja ainda não informou os horários. Os pedidos online continuam disponíveis." : "O envio de novos pedidos está bloqueado no momento.";
+      badge.textContent = storeIsOpen ? "Disponível online" : "Fechada";
+      badge.className = "business-hours-public-badge " + (storeIsOpen ? "is-open" : "is-closed");
       list.innerHTML = '<p class="business-hours-no-schedule">A programação de atendimento será exibida aqui quando a loja configurá-la.</p>';
       return;
     }
