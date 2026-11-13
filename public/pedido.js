@@ -88,15 +88,25 @@
       panel.innerHTML = '<h4>Pagamento via Pix</h4><p>Não foi possível montar o QR Code. Entre em contato com a loja para receber a chave Pix.</p>';
       return;
     }
-    const qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data=" + encodeURIComponent(payload);
     panel.hidden = false;
     panel.innerHTML = '<h4>Finalize seu pagamento via Pix</h4><p class="pix-payment-total">Valor do pedido: <strong>' + money(totalCents) + '</strong></p>' +
-      '<img class="pix-qr-code" src="' + qrUrl + '" alt="QR Code Pix para pagamento de ' + money(totalCents) + '">' +
+      '<img id="pix-qr-code" class="pix-qr-code" alt="QR Code Pix para pagamento de ' + money(totalCents) + '">' +
       '<p class="pix-beneficiary">Recebedor: <strong>' + escapeHtml(name) + '</strong></p>' +
       '<div class="pix-key-line"><span>Chave Pix</span><strong>' + escapeHtml(key) + '</strong><button type="button" data-copy-pix-key>Copiar chave</button></div>' +
       '<label class="pix-copy-label" for="pix-copy-paste">Pix Copia e Cola</label><textarea id="pix-copy-paste" readonly rows="4">' + escapeHtml(payload) + '</textarea>' +
       '<button type="button" class="order-submit pix-copy-button" data-copy-pix>Copiar código Pix</button>' +
       '<p class="pix-manual-note">Após pagar, aguarde a confirmação manual da loja. O envio do pedido ou a exibição deste QR Code não confirma o pagamento.</p>';
+    const qrImage = $("#pix-qr-code");
+    if (window.QRCode && typeof window.QRCode.toDataURL === "function") {
+      window.QRCode.toDataURL(payload, { width: 240, margin: 2, errorCorrectionLevel: "M" }, (error, dataUrl) => {
+        if (!error && qrImage) qrImage.src = dataUrl;
+        else if (qrImage) { qrImage.hidden = true; }
+      });
+    } else if (qrImage) {
+      qrImage.hidden = true;
+      const note = panel.querySelector(".pix-manual-note");
+      if (note) note.textContent = "O QR Code não carregou neste navegador. Use o Pix Copia e Cola abaixo.";
+    }
   }
   async function copyPixText(value, button) {
     try {
