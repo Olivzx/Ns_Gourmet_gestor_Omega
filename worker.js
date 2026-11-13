@@ -89,15 +89,32 @@ async function handleAdmin(request, env) {
   try {
     if (path === "/api/admin/me" && request.method === "GET") return json({ user: { id: auth.user.id, email: auth.user.email } });
     if (path === "/api/admin/data" && request.method === "GET") {
-      const [orders, products, settings, rates] = await Promise.all([
-        supabaseRest(env, "public_orders?select=*,public_order_items(*)&order=created_at.desc&limit=150"),
+      const [orders, products, settings, rates, finance, categories, inventory, movements] = await Promise.all([
+        supabaseRest(env, "public_orders?select=*,public_order_items(*)&order=created_at.desc&limit=300"),
         supabaseRest(env, "public_order_products?select=*&order=category.asc,name.asc"),
         supabaseRest(env, "public_store_settings?select=*&id=eq.true&limit=1"),
-        supabaseRest(env, "public_order_delivery_rates?select=*&order=neighborhood.asc")
+        supabaseRest(env, "public_order_delivery_rates?select=*&order=neighborhood.asc"),
+        supabaseRest(env, "admin_finance_entries?select=*,admin_finance_categories(id,name,kind)&order=due_date.desc,created_at.desc&limit=500"),
+        supabaseRest(env, "admin_finance_categories?select=*&active=eq.true&order=kind.asc,name.asc"),
+        supabaseRest(env, "admin_inventory_items?select=*&order=active.desc,name.asc"),
+        supabaseRest(env, "admin_stock_movements?select=*,admin_inventory_items(name,unit)&order=created_at.desc&limit=80")
       ]);
-      return json({ orders: orders || [], products: products || [], settings: settings?.[0] || null, rates: rates || [] });
+      return json({
+        orders: orders || [], products: products || [], settings: settings?.[0] || null,
+        rates: rates || [], finance: finance || [], categories: categories || [],
+        inventory: inventory || [], movements: movements || []
+      });
     }
-    let match = path.match(/^\/api\/admin\/orders\/([0-9a-f-]+)$/i);
+    let match = path.match(/^\/api\/admin\/orders\/([0-9a-f-]+)\/payment$/i);
+    if (match && request.method === "PATCH") {
+      const body = await request.json().catch(() => ({}));
+      if (!["pending","paid","refunded"].includes(body.payment_status)) return json({ error: "Situação de pagamento inválida." }, 400);
+      const result = await supabaseRpc(env, "admin_set_order_payment_status", {
+        p_order_id: match[1], p_status: body.payment_status
+      });
+      return json({ ok: true, payment: result });
+    }
+    match = path.match(/^\/api\/admin\/orders\/([0-9a-f-]+)$/i);
     if (match && request.method === "PATCH") {
       const body = await request.json().catch(() => ({}));
       const allowed = ["received","preparing","ready","out_for_delivery","completed","cancelled"];
@@ -108,16 +125,31 @@ async function handleAdmin(request, env) {
     }
     if (path === "/api/admin/products" && request.method === "POST") {
       const body = await request.json().catch(() => ({}));
-      if (!body.id || !body.name || !body.category || !Number.isSafeInteger(body.unit_price_cents) || body.unit_price_cents < 0) return json({ error: "Preencha nome, categoria e preço válido." }, 400);
-      const result = await supabaseRest(env, "public_order_products", "POST", { id: String(body.id).slice(0,120), name: String(body.name).slice(0,120), category: String(body.category).slice(0,60), unit_price_cents: body.unit_price_cents, image_url: body.image_url || null, available: body.available !== false });
+      if (!body.id || !body.name || !body.category || !Number.isSafeInteger(body.unit_price_cents) || body.unit_price_cents < 0 || !Number.isSafeInteger(Number(body.cost_price_cents || 0)) || Number(body.cost_price_cents || 0) < 0) return json({ error: "Preencha nome, categoria e preços válidos." }, 400);
+      const prep = body.prep_minutes === null || body.prep_minutes === "" || body.prep_minutes === undefined ? null : Number(body.prep_minutes);
+      if (prep !== null && (!Number.isInteger(prep) || prep < 0)) return json({ error: "Tempo de preparo inválido." }, 400);
+      const result = await supabaseRest(env, "public_order_products", "POST", {
+        id: String(body.id).slice(0,120), name: String(body.name).trim().slice(0,120),
+        category: String(body.category).trim().slice(0,60), description: String(body.description || "").slice(0,600),
+        sku: body.sku ? String(body.sku).trim().slice(0,60) : null,
+        unit_price_cents: body.unit_price_cents, cost_price_cents: Number(body.cost_price_cents || 0),
+        prep_minutes: prep, image_url: body.image_url || null, available: body.available !== false
+      });
       return json({ ok: true, product: result?.[0] }, 201);
     }
     match = path.match(/^\/api\/admin\/products\/([^/]+)$/);
     if (match && request.method === "PATCH") {
       const body = await request.json().catch(() => ({}));
-      const update = { name: String(body.name || "").slice(0,120), category: String(body.category || "").slice(0,60),
-        unit_price_cents: Number(body.unit_price_cents), image_url: body.image_url || null, available: body.available !== false };
-      if (!update.name || !update.category || !Number.isSafeInteger(update.unit_price_cents) || update.unit_price_cents < 0) return json({ error: "Dados do produto inválidos." }, 400);
+      const prep = body.prep_minutes === null || body.prep_minutes === "" || body.prep_minutes === undefined ? null : Number(body.prep_minutes);
+      const update = {
+        name: String(body.name || "").trim().slice(0,120), category: String(body.category || "").trim().slice(0,60),
+        description: String(body.description || "").slice(0,600), sku: body.sku ? String(body.sku).trim().slice(0,60) : null,
+        unit_price_cents: Number(body.unit_price_cents), cost_price_cents: Number(body.cost_price_cents || 0),
+        prep_minutes: prep, image_url: body.image_url || null, available: body.available !== false
+      };
+      if (!update.name || !update.category || !Number.isSafeInteger(update.unit_price_cents) || update.unit_price_cents < 0 ||
+          !Number.isSafeInteger(update.cost_price_cents) || update.cost_price_cents < 0 ||
+          (prep !== null && (!Number.isInteger(prep) || prep < 0))) return json({ error: "Dados do produto inválidos." }, 400);
       const result = await supabaseRest(env, "public_order_products?id=eq." + encodeURIComponent(match[1]), "PATCH", update);
       if (!result?.length) return json({ error: "Produto não encontrado." }, 404);
       return json({ ok: true, product: result[0] });
@@ -147,6 +179,74 @@ async function handleAdmin(request, env) {
     if (match && request.method === "DELETE") {
       await supabaseRest(env, "public_order_delivery_rates?neighborhood=eq." + encodeURIComponent(decodeURIComponent(match[1])), "DELETE");
       return json({ ok: true });
+    }
+    if (path === "/api/admin/finance/entries" && request.method === "POST") {
+      const body = await request.json().catch(() => ({}));
+      const validKind = ["income","expense"].includes(body.kind);
+      const amount = Number(body.amount_cents);
+      const validStatus = ["pending","paid"].includes(body.status || "paid");
+      if (!validKind || !body.category_id || !String(body.description || "").trim() ||
+          !Number.isSafeInteger(amount) || amount <= 0 || !validStatus) {
+        return json({ error: "Informe tipo, categoria, descrição, valor e situação válidos." }, 400);
+      }
+      const paid = (body.status || "paid") === "paid";
+      const result = await supabaseRest(env, "admin_finance_entries", "POST", {
+        kind: body.kind, category_id: body.category_id, description: String(body.description).trim().slice(0,180),
+        amount_cents: amount, status: paid ? "paid" : "pending",
+        due_date: body.due_date || new Date().toISOString().slice(0,10),
+        paid_at: paid ? new Date().toISOString() : null,
+        payment_method: body.payment_method || null, notes: body.notes ? String(body.notes).slice(0,1000) : null
+      });
+      return json({ ok: true, entry: result?.[0] }, 201);
+    }
+    match = path.match(/^\/api\/admin\/finance\/entries\/([0-9a-f-]+)$/i);
+    if (match && request.method === "PATCH") {
+      const body = await request.json().catch(() => ({}));
+      if (!["pending","paid","void"].includes(body.status)) return json({ error: "Situação financeira inválida." }, 400);
+      const update = { status: body.status, paid_at: body.status === "paid" ? new Date().toISOString() : null, updated_at: new Date().toISOString() };
+      const result = await supabaseRest(env, "admin_finance_entries?id=eq." + encodeURIComponent(match[1]) + "&source_order_id=is.null", "PATCH", update);
+      if (!result?.length) return json({ error: "Lançamento manual não encontrado." }, 404);
+      return json({ ok: true, entry: result[0] });
+    }
+    if (path === "/api/admin/inventory/items" && request.method === "POST") {
+      const body = await request.json().catch(() => ({}));
+      const min = Number(body.minimum_quantity || 0), cost = Number(body.unit_cost_cents || 0);
+      if (!String(body.name || "").trim() || !String(body.unit || "").trim() || !Number.isFinite(min) || min < 0 ||
+          !Number.isSafeInteger(cost) || cost < 0) return json({ error: "Informe nome, unidade e valores válidos." }, 400);
+      const result = await supabaseRest(env, "admin_inventory_items", "POST", {
+        name: String(body.name).trim().slice(0,120), unit: String(body.unit).slice(0,12),
+        minimum_quantity: min, unit_cost_cents: cost, quantity_on_hand: 0,
+        notes: body.notes ? String(body.notes).slice(0,1000) : null, active: true
+      });
+      return json({ ok: true, item: result?.[0] }, 201);
+    }
+    match = path.match(/^\/api\/admin\/inventory\/items\/([0-9a-f-]+)$/i);
+    if (match && request.method === "PATCH") {
+      const body = await request.json().catch(() => ({})), update = {};
+      if (body.name !== undefined) update.name = String(body.name).trim().slice(0,120);
+      if (body.unit !== undefined) update.unit = String(body.unit).slice(0,12);
+      if (body.minimum_quantity !== undefined) update.minimum_quantity = Number(body.minimum_quantity);
+      if (body.unit_cost_cents !== undefined) update.unit_cost_cents = Number(body.unit_cost_cents);
+      if (body.notes !== undefined) update.notes = body.notes ? String(body.notes).slice(0,1000) : null;
+      if (body.active !== undefined) update.active = body.active === true;
+      update.updated_at = new Date().toISOString();
+      if (update.minimum_quantity !== undefined && (!Number.isFinite(update.minimum_quantity) || update.minimum_quantity < 0)) return json({ error: "Estoque mínimo inválido." }, 400);
+      if (update.unit_cost_cents !== undefined && (!Number.isSafeInteger(update.unit_cost_cents) || update.unit_cost_cents < 0)) return json({ error: "Custo unitário inválido." }, 400);
+      const result = await supabaseRest(env, "admin_inventory_items?id=eq." + encodeURIComponent(match[1]), "PATCH", update);
+      if (!result?.length) return json({ error: "Item de estoque não encontrado." }, 404);
+      return json({ ok: true, item: result[0] });
+    }
+    if (path === "/api/admin/inventory/movements" && request.method === "POST") {
+      const body = await request.json().catch(() => ({}));
+      const quantity = Number(body.quantity), allowed = ["in","out","adjustment"];
+      if (!body.item_id || !allowed.includes(body.movement_type) || !Number.isFinite(quantity) || quantity <= 0 ||
+          !String(body.reason || "").trim()) return json({ error: "Informe item, tipo, quantidade e motivo válidos." }, 400);
+      const result = await supabaseRest(env, "admin_stock_movements", "POST", {
+        item_id: body.item_id, movement_type: body.movement_type, quantity,
+        reason: String(body.reason).trim().slice(0,160),
+        notes: body.notes ? String(body.notes).slice(0,1000) : null
+      });
+      return json({ ok: true, movement: result?.[0] }, 201);
     }
     return json({ error: "Rota administrativa não encontrada." }, 404);
   } catch (error) {
