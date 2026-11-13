@@ -36,7 +36,7 @@ function startAutoRefresh(){if(autoRefreshTimer)clearInterval(autoRefreshTimer);
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")refreshOrdersSilently();});
 function renderAll(){renderOverview();renderOrders();renderDeliveries();renderProducts();renderCustomers();renderInventory();renderFinance();renderReports();renderSettings();}
 function renderOverview(){
- const orders=data.orders||[],paid=monthEntries(),s=sums(paid),pendingOrders=orders.filter(o=>["received","preparing","ready"].includes(o.status)).length;
+ const orders=(data.orders||[]).filter(o=>o.fulfillment_type!=="delivery"),paid=monthEntries(),s=sums(paid),pendingOrders=orders.filter(o=>["received","preparing","ready"].includes(o.status)).length;
  const today=localDate(),todayOrders=orders.filter(o=>localDateOf(o.created_at)===today),low=(data.inventory||[]).filter(i=>i.active&&Number(i.quantity_on_hand)<=Number(i.minimum_quantity));
  $("#today-label").textContent=new Date().toLocaleDateString("pt-BR",{weekday:"long",day:"2-digit",month:"long"});
  $("#overview-stats").innerHTML=[stat("Pedidos em aberto",pendingOrders,"Aguardando conclusão"),stat("Pedidos de hoje",todayOrders.length,"Todos os canais"),stat("Receitas recebidas no mês",money(s.income),"Lançamentos efetivamente pagos"),stat("Saldo do mês",money(s.income-s.expense),"Receitas menos despesas pagas")].join("");
@@ -74,14 +74,16 @@ function printOrder(id){
  }catch(error){printWindow.close();notice("Não foi possível abrir a ficha de impressão.",true);}
 }
 function renderOrders(){
- const orders=data.orders||[],pending=orders.filter(o=>["received","preparing","ready"].includes(o.status)).length;$("#pending-count").textContent=pending;
+ const orders=(data.orders||[]).filter(o=>o.fulfillment_type!=="delivery"),pending=orders.filter(o=>["received","preparing","ready"].includes(o.status)).length;$("#pending-count").textContent=pending;
  const filter=$("#order-filter").value,shown=orders.filter(o=>filter==="all"||o.status===filter);
- $("#orders-list").innerHTML=shown.length?shown.map(orderCard).join(""):empty("Nenhum pedido encontrado neste filtro.");
+ $("#orders-list").innerHTML=shown.length?shown.map(orderCard).join(""):empty("Nenhum pedido de retirada encontrado neste filtro. As entregas ficam na área Entregas.");
 }
 function renderDeliveries(){
- const list=(data.orders||[]).filter(o=>o.fulfillment_type==="delivery"),active=list.filter(o=>!["completed","cancelled"].includes(o.status)),done=list.filter(o=>o.status==="completed");
- $("#delivery-stats").innerHTML=[stat("Entregas ativas",active.length),stat("Prontas para sair",list.filter(o=>o.status==="ready").length),stat("Concluídas",done.length)].join("");
- $("#deliveries-list").innerHTML=list.length?list.map(orderCard).join(""):empty("Não há pedidos de entrega registrados.");
+ const list=(data.orders||[]).filter(o=>o.fulfillment_type==="delivery"),active=list.filter(o=>!["completed","cancelled"].includes(o.status)),history=list.filter(o=>["completed","cancelled"].includes(o.status));
+ const filter=$("#delivery-filter")?.value||"active";
+ const shown=filter==="history"?history:filter==="all"?list:active;
+ $("#delivery-stats").innerHTML=[stat("Entregas ativas",active.length),stat("Prontas para sair",list.filter(o=>o.status==="ready").length),stat("No histórico",history.length)].join("");
+ $("#deliveries-list").innerHTML=shown.length?shown.map(orderCard).join(""):empty(filter==="history"?"Ainda não há entregas concluídas ou canceladas.":"Não há entregas ativas no momento.");
 }
 function getMenuProducts(){
  const products=[...(data.products||[])],mode=$("#product-sort-mode")?.value||"manual";
@@ -196,7 +198,7 @@ document.addEventListener("click",e=>{const print=e.target.closest("[data-print-
 $("#login-form").addEventListener("submit",login);$("#logout").addEventListener("click",()=>logout());$("#refresh").addEventListener("click",load);$("#order-filter").addEventListener("change",renderOrders);$("#menu-toggle").addEventListener("click",()=>$("#sidebar").classList.toggle("open"));
 const thermalWidth=$("#thermal-paper-width");if(thermalWidth){try{thermalWidth.value=localStorage.getItem("omega_thermal_paper_width")||"80";}catch{}thermalWidth.addEventListener("change",()=>{try{localStorage.setItem("omega_thermal_paper_width",thermalWidth.value);}catch{}});}
 async function changeOrder(e){const id=e.target.dataset.orderStatus;if(id){try{await api("/api/admin/orders/"+encodeURIComponent(id),{method:"PATCH",body:JSON.stringify({status:e.target.value})});notice("Etapa do pedido atualizada.");await load();}catch(err){notice(err.message,true);}return;}const paymentId=e.target.dataset.paymentStatus;if(paymentId){try{await api("/api/admin/orders/"+encodeURIComponent(paymentId)+"/payment",{method:"PATCH",body:JSON.stringify({payment_status:e.target.value})});notice("Pagamento atualizado e financeiro sincronizado.");await load();}catch(err){notice(err.message,true);}}}
-$("#orders-list").addEventListener("change",changeOrder);$("#deliveries-list").addEventListener("change",changeOrder);
+$("#orders-list").addEventListener("change",changeOrder);$("#deliveries-list").addEventListener("change",changeOrder);$("#delivery-filter")?.addEventListener("change",renderDeliveries);
 $("#new-product").addEventListener("click",()=>openProduct());$("#cancel-product").addEventListener("click",()=>$("#product-form").hidden=true);
 $("#products-list").addEventListener("click",async e=>{const edit=e.target.dataset.editProduct,del=e.target.dataset.deleteProduct;if(edit){openProduct(data.products.find(p=>p.id===edit));return;}if(del&&confirm("Excluir este produto do cardápio?")){try{await api("/api/admin/products/"+encodeURIComponent(del),{method:"DELETE"});notice("Produto excluído.");await load();}catch(err){notice(err.message,true);}}});
 
