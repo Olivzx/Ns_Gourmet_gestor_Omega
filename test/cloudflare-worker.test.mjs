@@ -33,7 +33,7 @@ test("menu endpoint accepts GET and calls the existing Supabase RPC", async () =
     assert.equal(body.storeName, "NS Gourmet");
     assert.equal(body.demo, false);
     assert.equal(call.url, "https://example.supabase.co/rest/v1/rpc/public_order_menu");
-    assert.equal(call.options.headers.apikey, "test-publishable");
+    assert.equal(call.options.headers.apikey, "test-secret");
   } finally {
     globalThis.fetch = originalFetch;
   }
