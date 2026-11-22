@@ -97,11 +97,11 @@ async function callSupabaseRpc(env, functionName, payload = {}) {
 
     const result = await response.json().catch(() => null);
     if (!response.ok) {
-      const clientError = response.status >= 400 && response.status < 500;
+      const validationError = response.status === 400 || response.status === 422;
       return {
         ok: false,
-        status: response.status === 429 ? 503 : clientError ? 400 : 502,
-        error: clientError
+        status: validationError ? 400 : response.status === 401 || response.status === 403 || response.status === 429 ? 503 : 502,
+        error: validationError
           ? errorMessage(result?.message, "Não foi possível validar a solicitação.")
           : "Não foi possível acessar o banco de dados agora.",
       };
