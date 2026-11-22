@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "node --watch mock-server.js",
     "start": "node mock-server.js",
-    "check": "node --check mock-server.js && node --check pedido.js && node --check src/index.mjs",
+    "check": "node --check mock-server.js && node --check pedido.js && node --check public/pedido.js && node --check public/admin.js && node --check admin.js && node --check src/index.mjs",
     "test": "node --test test/*.test.*",
     "deploy": "wrangler deploy",
     "deploy:dry": "wrangler deploy --dry-run"
