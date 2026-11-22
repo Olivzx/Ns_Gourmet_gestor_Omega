@@ -5,6 +5,7 @@ import worker from "../src/index.mjs";
 const env = {
   SUPABASE_URL: "https://example.supabase.co",
   SUPABASE_SERVICE_ROLE_KEY: "test-secret",
+  SUPABASE_PUBLISHABLE_KEY: "test-publishable",
   PUBLIC_ORDER_LIMITER: { async limit() { return { success: true }; } },
 };
 
