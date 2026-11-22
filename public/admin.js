@@ -470,9 +470,12 @@
 
   function ensureAcceptanceControl() {
     if ($("store-mode-controls")) return;
+    // Remove the legacy checkbox section when the browser still has the previous cached HTML.
+    const legacyToggle = $("accepting-orders-toggle");
+    legacyToggle?.closest(".hours-card")?.remove();
     const section = document.createElement("section");
     section.className = "hours-card order-acceptance-card";
-    section.innerHTML = '<div class="panel-heading"><div><span class="panel-kicker">STATUS DA LOJA</span><h2>Controle de funcionamento</h2></div><span id="store-mode-status" class="store-mode-status">Carregando...</span></div><p>Escolha se a loja segue a programação ou se ficará aberta/fechada manualmente. A abertura manual libera pedidos mesmo fora do expediente.</p><div id="store-mode-controls" class="store-mode-controls"><button type="button" data-store-mode="auto">Automático</button><button type="button" data-store-mode="open">Abrir loja agora</button><button type="button" data-store-mode="closed">Fechar loja agora</button></div>';
+    section.innerHTML = '<div class="panel-heading"><div><span class="panel-kicker">STATUS DA LOJA</span><h2>Controle de funcionamento</h2></div><span id="store-mode-status" class="store-mode-status">Carregando...</span></div><p>Escolha se a loja segue a programação ou se ficará aberta/fechada manualmente. A abertura manual libera pedidos mesmo fora do expediente.</p><div id="store-mode-controls" class="store-mode-controls"><button class="quiet-button" type="button" data-store-mode="auto">Automático</button><button class="primary-button" type="button" data-store-mode="open">Abrir loja agora</button><button class="quiet-button" type="button" data-store-mode="closed">Fechar loja agora</button></div>';
     const settings = $("settings-section");
     const hoursCard = settings?.querySelector(".hours-card");
     if (settings && hoursCard) settings.insertBefore(section, hoursCard);
