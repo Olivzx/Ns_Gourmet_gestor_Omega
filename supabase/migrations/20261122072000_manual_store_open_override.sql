@@ -21,7 +21,7 @@ BEGIN
   IF s.manual_open_override IS NOT NULL THEN
     is_open := s.manual_open_override;
   ELSE
-    is_open := COALESCE(s.accepting_orders,false);
+    is_open := CASE WHEN COALESCE(s.business_hours_enabled,false) THEN true ELSE COALESCE(s.accepting_orders,false) END;
   END IF;
   IF s.manual_open_override IS NULL AND COALESCE(s.business_hours_enabled,false) THEN
     day_key := (ARRAY['sun','mon','tue','wed','thu','fri','sat'])[extract(dow FROM now() AT TIME ZONE tz)::int + 1];
@@ -78,7 +78,7 @@ BEGIN
   SELECT * INTO s FROM public_store_settings WHERE id = true LIMIT 1;
   IF NOT FOUND THEN RAISE EXCEPTION 'A loja não está aceitando pedidos no momento.'; END IF;
   IF s.manual_open_override IS FALSE THEN RAISE EXCEPTION 'A loja está fechada manualmente no momento.'; END IF;
-  IF s.manual_open_override IS NULL AND COALESCE(s.accepting_orders,false) = false THEN RAISE EXCEPTION 'A loja não está aceitando pedidos no momento.'; END IF;
+  IF s.manual_open_override IS NULL AND COALESCE(s.business_hours_enabled,false) = false AND COALESCE(s.accepting_orders,false) = false THEN RAISE EXCEPTION 'A loja não está aceitando pedidos no momento.'; END IF;
   v_tz := COALESCE(NULLIF(s.time_zone,''),'America/Maceio');
   IF s.manual_open_override IS NULL AND COALESCE(s.business_hours_enabled,false) THEN
     v_day_key := (ARRAY['sun','mon','tue','wed','thu','fri','sat'])[extract(dow FROM now() AT TIME ZONE v_tz)::int + 1];
