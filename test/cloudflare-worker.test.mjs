@@ -5,6 +5,7 @@ import worker from "../src/index.mjs";
 const env = {
   SUPABASE_URL: "https://example.supabase.co",
   SUPABASE_SERVICE_ROLE_KEY: "test-secret",
+  PUBLIC_ORDER_LIMITER: { async limit() { return { success: true }; } },
 };
 
 function request(path, options = {}) {
@@ -123,4 +124,29 @@ test("order endpoint returns a controlled error when Supabase secrets are missin
 test("unknown API routes return JSON 404", async () => {
   const response = await worker.fetch(request("/api/not-real"), env);
   assert.equal(response.status, 404);
+});
+
+test("order endpoint blocks requests when the per-IP rate limit is exceeded", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => { throw new Error("Supabase should not be called"); };
+  const limitedEnv = {
+    ...env,
+    PUBLIC_ORDER_LIMITER: { async limit() { return { success: false }; } },
+  };
+
+  try {
+    const response = await worker.fetch(request("/api/public-order/orders", {
+      method: "POST",
+      headers: {
+        origin: "https://nsgourmet.test",
+        "content-type": "application/json",
+        "cf-connecting-ip": "203.0.113.10",
+      },
+      body: JSON.stringify({ requestId: "test" }),
+    }), limitedEnv);
+    assert.equal(response.status, 429);
+    assert.equal(response.headers.get("retry-after"), "60");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
