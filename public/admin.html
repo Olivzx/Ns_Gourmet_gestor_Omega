@@ -121,10 +121,15 @@
           </div>
           <section class="hours-card order-acceptance-card">
             <div class="panel-heading">
-              <div><span class="panel-kicker">STATUS DA LOJA</span><h2>Recebimento de pedidos</h2></div>
-              <label class="accepting-orders-control"><input id="accepting-orders-toggle" type="checkbox"> Aceitar pedidos conforme os horários configurados</label>
+              <div><span class="panel-kicker">STATUS DA LOJA</span><h2>Controle de funcionamento</h2></div>
+              <span id="store-mode-status" class="store-mode-status">Carregando...</span>
             </div>
-            <p>Quando desativado, o cardápio informa que a loja está fechada e o sistema bloqueia novos pedidos, mesmo dentro do horário cadastrado.</p>
+            <p>Escolha se a loja segue a programação ou se ficará aberta/fechada manualmente. A abertura manual libera pedidos mesmo fora do expediente.</p>
+            <div id="store-mode-controls" class="store-mode-controls">
+              <button type="button" data-store-mode="auto">Automático</button>
+              <button type="button" data-store-mode="open">Abrir loja agora</button>
+              <button type="button" data-store-mode="closed">Fechar loja agora</button>
+            </div>
           </section>
           <section class="hours-card">
             <div class="panel-heading"><div><span class="panel-kicker">ATENDIMENTO</span><h2>Horários da semana</h2></div><button id="save-hours" class="primary-button" type="button">Salvar horários</button></div>
