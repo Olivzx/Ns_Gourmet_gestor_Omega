@@ -395,6 +395,8 @@
       setPreview(config.heroImageDataUrl || "");
       renderHours(config.businessHours || {});
       $("origin-address").value = config.originAddress || "";
+      const acceptingOrders = $("accepting-orders-toggle");
+      if (acceptingOrders) acceptingOrders.checked = config.acceptingOrders === true;
       $("fallback-cents").value = ((Number(config.deliveryFallbackCents ?? 200)) / 100).toFixed(2);
       $("fallback-km").value = config.deliveryFallbackKm ?? 3;
     } catch (error) {
@@ -446,15 +448,46 @@
         close: row.querySelector("[data-hour-close]").value,
       };
     });
+    const button = $("save-hours");
+    button.disabled = true;
+    const previousLabel = button.textContent;
+    button.textContent = "Salvando...";
     try {
-      await api("/api/admin/store-config", {
+      const result = await api("/api/admin/store-config", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ businessHours }),
       });
-      toast("Horários da semana atualizados.");
+      if (!result.config?.businessHours) throw new Error("O servidor não confirmou os horários gravados.");
+      await loadConfig();
+      toast("Horários salvos e conferidos no banco.");
     } catch (error) {
       toast(error.message);
+    } finally {
+      button.disabled = false;
+      button.textContent = previousLabel;
+    }
+  });
+
+  $("accepting-orders-toggle").addEventListener("change", async event => {
+    const toggle = event.currentTarget;
+    toggle.disabled = true;
+    try {
+      const result = await api("/api/admin/store-config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ acceptingOrders: toggle.checked }),
+      });
+      if (result.config?.acceptingOrders !== toggle.checked) {
+        throw new Error("O servidor não confirmou o estado de recebimento de pedidos.");
+      }
+      await loadConfig();
+      toast(toggle.checked ? "A loja está habilitada para receber pedidos nos horários configurados." : "Recebimento de pedidos pausado.");
+    } catch (error) {
+      toggle.checked = !toggle.checked;
+      toast(error.message);
+    } finally {
+      toggle.disabled = false;
     }
   });
 
