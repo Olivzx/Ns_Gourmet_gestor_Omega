@@ -196,6 +196,48 @@ test("admin login delegates password verification to Supabase Auth", async () =>
   }
 });
 
+test("admin login cookie authenticates the following session request", async () => {
+  const originalFetch = globalThis.fetch;
+  let authCall = 0;
+  globalThis.fetch = async (url, options) => {
+    authCall += 1;
+    if (String(url).endsWith("/auth/v1/token?grant_type=password")) {
+      return Response.json({
+        access_token: "access-test",
+        refresh_token: "refresh-test",
+        expires_in: 3600,
+        user: { email: "ns_gourmet@profissional.com" },
+      });
+    }
+    if (String(url).endsWith("/auth/v1/user")) {
+      assert.match(options.headers.authorization, /Bearer access-test/);
+      assert.equal(options.headers.apikey, "test-publishable");
+      return Response.json({ email: "ns_gourmet@profissional.com" });
+    }
+    throw new Error("Unexpected URL: " + url);
+  };
+
+  try {
+    const login = await worker.fetch(request("/api/admin/login", {
+      method: "POST",
+      headers: { origin: "https://nsgourmet.test", "content-type": "application/json" },
+      body: JSON.stringify({ username: "ns_gourmet@profissional.com", password: "not-a-real-password" }),
+    }), env);
+    assert.equal(login.status, 200);
+    const cookies = login.headers.getSetCookie();
+    assert.equal(cookies.length, 2);
+    const cookieHeader = cookies.map(value => value.split(";")[0]).join("; ");
+
+    const session = await worker.fetch(request("/api/admin/session", {
+      headers: { cookie: cookieHeader },
+    }), env);
+    assert.deepEqual(await session.json(), { authenticated: true });
+    assert.equal(authCall, 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("admin login refuses accounts outside the configured allowlist", async () => {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async () => { throw new Error("Supabase must not be called for a non-admin email"); };
