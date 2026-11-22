@@ -607,7 +607,7 @@ async function adminStoreConfig(request, env) {
       }
       const open = String(day.open || "");
       const close = String(day.close || "");
-      if (!day.closed && (!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(open) || !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(close) || open >= close)) {
+      if (!day.closed && (!/^([01]\d|2[0-3]):[0-5]\d$/.test(open) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(close) || open >= close)) {
         return json({ error: "Confira os horários: a abertura deve ser anterior ao fechamento." }, 400);
       }
       normalizedHours[dayKey] = { closed: day.closed, open: day.closed ? (open || "09:00") : open, close: day.closed ? (close || "18:00") : close };
