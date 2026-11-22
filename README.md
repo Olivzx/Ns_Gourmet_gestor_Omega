@@ -59,7 +59,7 @@ Este projeto reutiliza o projeto Supabase **Omega** e as funções SQL já aplic
 - O portal público utiliza somente as duas rotas listadas acima. As rotas administrativas do mock-server local não são migradas por esta entrega.
 - O formulário permite indicar bairro não cadastrado e estimativa de distância, mas a RPC atual do banco aceita somente bairros cadastrados em `public_order_delivery_rates`. Esse comportamento precisa de uma decisão e implementação específica no banco antes de oferecer frete por distância em produção.
 - O estado atual da configuração Supabase está com `accepting_orders = false`; o banco rejeitará novos pedidos até que a loja seja reaberta pela configuração administrativa. Isso não foi alterado.
-- O Worker valida origem, tipo e tamanho do corpo; configure uma regra de rate limiting no Cloudflare para `POST /api/public-order/orders` antes de tráfego público amplo.
+- O Worker aplica rate limiting aproximado de 12 envios por IP a cada 60 segundos em cada localização Cloudflare. A contagem é eventualmente consistente e não equivale a um limite global estrito.
 
 ## Desenvolvimento
 
