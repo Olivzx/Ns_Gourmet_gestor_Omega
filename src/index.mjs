@@ -642,7 +642,7 @@ export default {
       const assetRequest = new Request(new URL(target, request.url), request);
       return withCookies(await env.ASSETS.fetch(assetRequest), context.cookies);
     }
-    if (url.pathname === "/admin-login") return Response.redirect(new URL("/admin", request.url), 302);
+    if (url.pathname === "/admin-login") return env.ASSETS.fetch(new Request(new URL("/admin-login.html", request.url), request));
     if (url.pathname === "/pedido" || url.pathname === "/pedido/") {
       return env.ASSETS.fetch(new Request(new URL("/pedido.html", request.url), request));
     }
