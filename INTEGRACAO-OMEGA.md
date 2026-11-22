@@ -1,25 +1,38 @@
-# Contrato de integração — Cardápio NS Gourmet / Omega
+# Integração NS Gourmet — Cloudflare Workers + Supabase
 
-Esta base preserva os contratos presentes no `server.js` atual do Gestor Omega. Ela não exige um novo banco de dados nem novas tabelas para o cardápio público funcionar com o backend já existente.
+## Contrato público
 
-## Leitura do cardápio
+### GET /api/public-order/menu
+O Worker chama `public.public_order_menu()` via `POST /rest/v1/rpc/public_order_menu` e retorna o JSON do cardápio.
 
-`GET /api/public-order/menu`
+### POST /api/public-order/orders
+O Worker valida a origem, o Content-Type, o tamanho e a estrutura JSON. Em seguida chama `public.create_public_order(p_order jsonb)` via PostgREST e retorna o ID, o total calculado no banco e o indicador de duplicidade.
 
-A API retorna `storeName`, `whatsapp`, `products`, `deliveryRates` e `businessHours`. A página pública usa IDs e valores retornados pelo servidor.
+## Supabase
 
-## Envio do pedido
+O projeto Supabase **Omega** e suas tabelas/dados existentes são preservados. Não é necessário criar tabelas nem reaplicar migrations para migrar os handlers HTTP.
 
-`POST /api/public-order/orders`
+As RPCs existentes continuam responsáveis por:
+- horário e disponibilidade de pedidos;
+- validação de dados, produtos e quantidades;
+- cálculo de subtotal, taxa de entrega e total;
+- prevenção de duplicidade por requestId;
+- persistência de pedidos e itens.
 
-O corpo contém `requestId` (UUID), `customerName`, `phone`, `address`, `neighborhood`, `fulfillmentType`, `paymentMethod`, `notes`, `items` (productId e quantity) e `origin`.
+O Worker usa `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY) como secrets. A chave privilegiada nunca pode ser enviada ao navegador.
 
-O servidor Omega deve recalcular preços e frete, validar horários, disponibilidade e idempotência, persistir o pedido e notificar a loja.
+## Secrets locais e produção
 
-## Segurança
+Local: copie os nomes para `.dev.vars` (arquivo ignorado pelo Git).
 
-- Não adicionar SERVICE_ROLE_KEY, DATABASE_URL, tokens ou senhas no JavaScript do navegador.
-- Não confiar em preço, desconto, taxa ou total enviados pelo navegador.
-- Preservar requireSameOrigin, rate limit, validação de horário e idempotência do backend.
-- Testar em cópia de desenvolvimento antes de publicar.
-- Não publicar mock-server.js na Vercel; ele é somente para prévia local.
+Produção: use `wrangler secret put` para cadastrar cada secret no Worker correto. Não inclua os valores no repositório nem em logs.
+
+## Rotas e assets
+
+O Worker executa primeiro em `/api/*). As demais requisições são atendidas pelo diretório `public/` via Workers Static Assets.
+
+## Pontos a resolver antes de produção ampla
+
+1. Criar uma regra de rate limiting para `POST /api/public-order/orders`.
+2. Decidir se bairros não cadastrados devem ser aceitos. A UI atual calcula frete estimado por distância, mas a RPC atual exige uma taxa cadastrada e rejeita bairros fora da tabela.
+3. Configurar secrets e validar os dois endpoints em preview com uma solicitação de teste controlada.
