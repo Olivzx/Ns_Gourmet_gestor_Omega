@@ -372,3 +372,17 @@ test("admin store config rejects invalid or incomplete business hours", async ()
     globalThis.fetch = originalFetch;
   }
 });
+
+
+test("admin and public order JavaScript are served directly by the Worker", async () => {
+  const adminResponse = await worker.fetch(request("/admin.js"), env);
+  const publicResponse = await worker.fetch(request("/pedido.js"), env);
+  const adminScript = await adminResponse.text();
+  const publicScript = await publicResponse.text();
+  assert.equal(adminResponse.status, 200);
+  assert.equal(publicResponse.status, 200);
+  assert.match(adminResponse.headers.get("content-type"), /javascript/i);
+  assert.match(publicResponse.headers.get("content-type"), /javascript/i);
+  assert.match(adminScript, /accepting-orders-toggle/);
+  assert.match(publicScript, /Horario automático desativado|Horário automático desativado/);
+});
