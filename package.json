@@ -2,17 +2,19 @@
   "name": "ns-gourmet-public-site-base",
   "version": "0.1.0",
   "private": true,
-  "description": "Base do cardapio publico NS Gourmet, compativel com as APIs publicas do Gestor Omega.",
+  "description": "Cardapio publico NS Gourmet com frontend estatico e API Cloudflare Workers integrada ao Supabase.",
   "scripts": {
     "dev": "node --watch mock-server.js",
     "start": "node mock-server.js",
-    "check": "node --check mock-server.js && node --check pedido.js",
-    "deploy": "wrangler deploy"
+    "check": "node --check mock-server.js && node --check pedido.js && node --check src/index.mjs",
+    "test": "node --test test/*.test.*",
+    "deploy": "wrangler deploy",
+    "deploy:dry": "wrangler deploy --dry-run"
   },
   "devDependencies": {
     "wrangler": "4.166.0"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   }
 }
