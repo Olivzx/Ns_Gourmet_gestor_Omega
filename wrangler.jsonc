@@ -5,6 +5,7 @@
   "compatibility_date": "2026-11-22",
   "vars": {
     "SUPABASE_URL": "https://kluxlinnqtlitnbwafdj.supabase.co",
+    "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_78gp2D405BISAERmTzPv_g_GGdW2UDs",
     "ADMIN_EMAIL": "ns_gourmet@profissional.com"
   },
   "assets": {
@@ -40,6 +41,7 @@
   "previews": {
     "vars": {
       "SUPABASE_URL": "https://preview.invalid",
+      "SUPABASE_PUBLISHABLE_KEY": "preview-disabled",
       "ADMIN_EMAIL": "ns_gourmet@profissional.com"
     },
     "ratelimits": [
