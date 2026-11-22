@@ -395,8 +395,7 @@
       setPreview(config.heroImageDataUrl || "");
       renderHours(config.businessHours || {});
       $("origin-address").value = config.originAddress || "";
-      const acceptingOrders = $("accepting-orders-toggle");
-      if (acceptingOrders) acceptingOrders.checked = config.acceptingOrders === true;
+      renderStoreMode(config.manualOpenOverride);
       $("fallback-cents").value = ((Number(config.deliveryFallbackCents ?? 200)) / 100).toFixed(2);
       $("fallback-km").value = config.deliveryFallbackKm ?? 3;
     } catch (error) {
@@ -470,35 +469,43 @@
   });
 
   function ensureAcceptanceControl() {
-    if ($("accepting-orders-toggle")) return;
+    if ($("store-mode-controls")) return;
     const section = document.createElement("section");
     section.className = "hours-card order-acceptance-card";
-    section.innerHTML = '<div class="panel-heading"><div><span class="panel-kicker">STATUS DA LOJA</span><h2>Recebimento de pedidos</h2></div><label class="accepting-orders-control"><input id="accepting-orders-toggle" type="checkbox"> Aceitar pedidos conforme os horários configurados</label></div><p>Quando desativado, o cardápio informa que a loja está fechada e o sistema bloqueia novos pedidos, mesmo dentro do horário cadastrado.</p>';
+    section.innerHTML = '<div class="panel-heading"><div><span class="panel-kicker">STATUS DA LOJA</span><h2>Controle de funcionamento</h2></div><span id="store-mode-status" class="store-mode-status">Carregando...</span></div><p>Escolha se a loja segue a programação ou se ficará aberta/fechada manualmente. A abertura manual libera pedidos mesmo fora do expediente.</p><div id="store-mode-controls" class="store-mode-controls"><button type="button" data-store-mode="auto">Automático</button><button type="button" data-store-mode="open">Abrir loja agora</button><button type="button" data-store-mode="closed">Fechar loja agora</button></div>';
     const settings = $("settings-section");
     const hoursCard = settings?.querySelector(".hours-card");
     if (settings && hoursCard) settings.insertBefore(section, hoursCard);
   }
+  function renderStoreMode(mode) {
+    const status = $("store-mode-status");
+    if (!status) return;
+    status.textContent = mode === true ? "Aberta manualmente" : mode === false ? "Fechada manualmente" : "Automático";
+    const activeMode = mode === true ? "open" : mode === false ? "closed" : "auto";
+    document.querySelectorAll("[data-store-mode]").forEach(button => button.classList.toggle("active", button.dataset.storeMode === activeMode));
+  }
   ensureAcceptanceControl();
 
-  $("accepting-orders-toggle").addEventListener("change", async event => {
-    const toggle = event.currentTarget;
-    toggle.disabled = true;
+  $("store-mode-controls").addEventListener("click", async event => {
+    const button = event.target.closest("[data-store-mode]");
+    if (!button) return;
+    const mode = button.dataset.storeMode;
+    const manualOpenOverride = mode === "auto" ? null : mode === "open";
+    const controls = $("store-mode-controls");
+    controls.querySelectorAll("button").forEach(item => item.disabled = true);
     try {
       const result = await api("/api/admin/store-config", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ acceptingOrders: toggle.checked }),
+        body: JSON.stringify({ manualOpenOverride }),
       });
-      if (result.config?.acceptingOrders !== toggle.checked) {
-        throw new Error("O servidor não confirmou o estado de recebimento de pedidos.");
-      }
+      if (result.config?.manualOpenOverride !== manualOpenOverride) throw new Error("O servidor não confirmou o modo de funcionamento.");
       await loadConfig();
-      toast(toggle.checked ? "A loja está habilitada para receber pedidos nos horários configurados." : "Recebimento de pedidos pausado.");
+      toast(mode === "open" ? "Loja aberta manualmente. Pedidos liberados agora." : mode === "closed" ? "Loja fechada manualmente." : "Funcionamento automático restaurado.");
     } catch (error) {
-      toggle.checked = !toggle.checked;
       toast(error.message);
     } finally {
-      toggle.disabled = false;
+      controls.querySelectorAll("button").forEach(item => item.disabled = false);
     }
   });
 

@@ -383,6 +383,52 @@ test("admin and public order JavaScript are served directly by the Worker", asyn
   assert.equal(publicResponse.status, 200);
   assert.match(adminResponse.headers.get("content-type"), /javascript/i);
   assert.match(publicResponse.headers.get("content-type"), /javascript/i);
-  assert.match(adminScript, /accepting-orders-toggle/);
+  assert.match(adminScript, /store-mode-controls|Abrir loja agora/);
   assert.match(publicScript, /Horario automático desativado|Horário automático desativado/);
+});
+
+
+test("admin store config persists manual open override and automatic reset", async () => {
+  const originalFetch = globalThis.fetch;
+  let patchBody;
+  globalThis.fetch = async (url, options = {}) => {
+    if (String(url).endsWith("/auth/v1/user")) return Response.json({ email: "ns_gourmet@profissional.com" });
+    if (String(url).includes("/rest/v1/public_store_settings") && options.method === "PATCH") {
+      patchBody = JSON.parse(options.body);
+      return Response.json([{ business_hours: {}, business_hours_enabled: true, accepting_orders: true,
+        manual_open_override: patchBody.manual_open_override, time_zone: "America/Maceio", origin_address: "",
+        delivery_fallback_cents: 200, delivery_fallback_km: 3 }]);
+    }
+    if (String(url).includes("/rest/v1/public_store_settings")) return Response.json([{ business_hours: {},
+      business_hours_enabled: true, accepting_orders: true, manual_open_override: null, time_zone: "America/Maceio" }]);
+    throw new Error("Unexpected Supabase request: " + url);
+  };
+  try {
+    for (const value of [true, false, null]) {
+      const response = await worker.fetch(request("/api/admin/store-config", {
+        method: "POST", headers: { origin: "https://nsgourmet.test", cookie: "nsg_admin_access=test-access", "content-type": "application/json" },
+        body: JSON.stringify({ manualOpenOverride: value }),
+      }), env);
+      const body = await response.json();
+      assert.equal(response.status, 200);
+      assert.equal(patchBody.manual_open_override, value);
+      assert.equal(body.config.manualOpenOverride, value);
+    }
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test("admin store config rejects invalid manual open override", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    if (String(url).endsWith("/auth/v1/user")) return Response.json({ email: "ns_gourmet@profissional.com" });
+    if (String(url).includes("/rest/v1/public_store_settings")) return Response.json([{ manual_open_override: null }]);
+    throw new Error("Invalid manual mode must not be written");
+  };
+  try {
+    const response = await worker.fetch(request("/api/admin/store-config", {
+      method: "POST", headers: { origin: "https://nsgourmet.test", cookie: "nsg_admin_access=test-access", "content-type": "application/json" },
+      body: JSON.stringify({ manualOpenOverride: "open" }),
+    }), env);
+    assert.equal(response.status, 400);
+  } finally { globalThis.fetch = originalFetch; }
 });
