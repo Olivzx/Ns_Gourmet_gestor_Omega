@@ -5,6 +5,7 @@ import worker from "../src/index.mjs";
 const env = {
   SUPABASE_URL: "https://example.supabase.co",
   SUPABASE_SERVICE_ROLE_KEY: "test-secret",
+  SUPABASE_PUBLISHABLE_KEY: "test-publishable",
   PUBLIC_ORDER_LIMITER: { async limit() { return { success: true }; } },
 };
 
@@ -187,6 +188,7 @@ test("admin login delegates password verification to Supabase Auth", async () =>
     }), env);
     assert.equal(response.status, 200);
     assert.equal(call.url, "https://example.supabase.co/auth/v1/token?grant_type=password");
+    assert.equal(call.options.headers.apikey, "test-publishable");
     assert.equal(JSON.parse(call.options.body).email, "ns_gourmet@profissional.com");
     assert.match(response.headers.get("set-cookie"), /nsg_admin_access=/);
   } finally {
