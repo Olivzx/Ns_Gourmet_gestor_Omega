@@ -469,6 +469,17 @@
     }
   });
 
+  function ensureAcceptanceControl() {
+    if ($("accepting-orders-toggle")) return;
+    const section = document.createElement("section");
+    section.className = "hours-card order-acceptance-card";
+    section.innerHTML = '<div class="panel-heading"><div><span class="panel-kicker">STATUS DA LOJA</span><h2>Recebimento de pedidos</h2></div><label class="accepting-orders-control"><input id="accepting-orders-toggle" type="checkbox"> Aceitar pedidos conforme os horários configurados</label></div><p>Quando desativado, o cardápio informa que a loja está fechada e o sistema bloqueia novos pedidos, mesmo dentro do horário cadastrado.</p>';
+    const settings = $("settings-section");
+    const hoursCard = settings?.querySelector(".hours-card");
+    if (settings && hoursCard) settings.insertBefore(section, hoursCard);
+  }
+  ensureAcceptanceControl();
+
   $("accepting-orders-toggle").addEventListener("change", async event => {
     const toggle = event.currentTarget;
     toggle.disabled = true;
