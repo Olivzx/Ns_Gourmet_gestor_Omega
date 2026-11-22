@@ -253,6 +253,21 @@ test("admin login refuses accounts outside the configured allowlist", async () =
   }
 });
 
+test("admin login HTML is served directly with its dedicated script", async () => {
+  const response = await worker.fetch(request("/admin"), env);
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get("content-type"), /text\/html/);
+  assert.match(await response.text(), /src="\/admin-login\.js" defer/);
+});
+
+test("admin login JavaScript is served directly by the Worker", async () => {
+  const response = await worker.fetch(request("/admin-login.js"), env);
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get("content-type"), /javascript/);
+  assert.match(await response.text(), /\/api\/admin\/login/);
+  assert.match(await response.text(), /\/api\/admin\/session/);
+});
+
 test("admin route serves login page until the Supabase session is verified", async () => {
   const response = await worker.fetch(request("/admin"), {
     ...env,
