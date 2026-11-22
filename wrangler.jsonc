@@ -4,14 +4,16 @@
   "main": "./src/index.mjs",
   "compatibility_date": "2026-11-22",
   "vars": {
-    "SUPABASE_URL": "https://kluxlinnqtlitnbwafdj.supabase.co"
+    "SUPABASE_URL": "https://kluxlinnqtlitnbwafdj.supabase.co",
+    "ADMIN_EMAIL": "ns_gourmet@profissional.com"
   },
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
     "not_found_handling": "none",
     "run_worker_first": [
-      "/api/*"
+      "/api/*",
+      "/admin*"
     ]
   },
   "observability": {
@@ -34,5 +36,21 @@
         "period": 60
       }
     }
-  ]
+  ],
+  "previews": {
+    "vars": {
+      "SUPABASE_URL": "https://preview.invalid",
+      "ADMIN_EMAIL": "ns_gourmet@profissional.com"
+    },
+    "ratelimits": [
+      {
+        "name": "PUBLIC_ORDER_LIMITER",
+        "namespace_id": "2026112202",
+        "simple": {
+          "limit": 12,
+          "period": 60
+        }
+      }
+    ]
+  }
 }

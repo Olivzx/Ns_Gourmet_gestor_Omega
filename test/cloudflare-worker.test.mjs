@@ -153,3 +153,83 @@ test("order endpoint blocks requests when the per-IP rate limit is exceeded", as
     globalThis.fetch = originalFetch;
   }
 });
+
+
+test("admin API is protected when no authenticated Supabase session exists", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => { throw new Error("No session token should be checked"); };
+  try {
+    const response = await worker.fetch(request("/api/admin/overview"), env);
+    assert.equal(response.status, 401);
+    assert.match((await response.json()).error, /autenticação necessária/i);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("admin login delegates password verification to Supabase Auth", async () => {
+  const originalFetch = globalThis.fetch;
+  let call;
+  globalThis.fetch = async (url, options) => {
+    call = { url: String(url), options };
+    return Response.json({
+      access_token: "access-test",
+      refresh_token: "refresh-test",
+      expires_in: 3600,
+      user: { email: "ns_gourmet@profissional.com" },
+    });
+  };
+  try {
+    const response = await worker.fetch(request("/api/admin/login", {
+      method: "POST",
+      headers: { origin: "https://nsgourmet.test", "content-type": "application/json" },
+      body: JSON.stringify({ username: "ns_gourmet@profissional.com", password: "not-a-real-password" }),
+    }), env);
+    assert.equal(response.status, 200);
+    assert.equal(call.url, "https://example.supabase.co/auth/v1/token?grant_type=password");
+    assert.equal(JSON.parse(call.options.body).email, "ns_gourmet@profissional.com");
+    assert.match(response.headers.get("set-cookie"), /nsg_admin_access=/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("admin login refuses accounts outside the configured allowlist", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => { throw new Error("Supabase must not be called for a non-admin email"); };
+  try {
+    const response = await worker.fetch(request("/api/admin/login", {
+      method: "POST",
+      headers: { origin: "https://nsgourmet.test", "content-type": "application/json" },
+      body: JSON.stringify({ username: "someone@example.com", password: "test" }),
+    }), env);
+    assert.equal(response.status, 401);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("admin route serves login page until the Supabase session is verified", async () => {
+  const response = await worker.fetch(request("/admin"), {
+    ...env,
+    ASSETS: {
+      async fetch(assetRequest) {
+        return new Response(new URL(assetRequest.url).pathname, { headers: { "content-type": "text/plain" } });
+      },
+    },
+  });
+  assert.equal(response.status, 200);
+  assert.equal(await response.text(), "/admin-login.html");
+});
+
+test("direct admin html URL is also protected", async () => {
+  const response = await worker.fetch(request("/admin.html"), {
+    ...env,
+    ASSETS: {
+      async fetch(assetRequest) {
+        return new Response(new URL(assetRequest.url).pathname);
+      },
+    },
+  });
+  assert.equal(await response.text(), "/admin-login.html");
+});

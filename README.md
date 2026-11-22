@@ -9,6 +9,22 @@ Portal público de pedidos da NS Gourmet. O frontend é servido por Cloudflare W
 - **RPCs existentes:** `public_order_menu()` e `create_public_order(p_order jsonb)`. O Worker chama essas funções pelo endpoint PostgREST.
 - **Credenciais:** a URL do projeto é uma variável não secreta do Wrangler; `SUPABASE_SERVICE_ROLE_KEY` fica como secret do Worker. A chave privilegiada nunca é incluída nos arquivos públicos.
 
+## Área administrativa
+
+- Acesse `/admin`; o Worker entrega o login quando não existe sessão válida.
+- O login usa o usuário existente no Supabase Auth (`ns_gourmet@profissional.com`) e valida a senha diretamente no Supabase. Não há senha administrativa hardcoded no código.
+- Apenas o e-mail administrativo permitido em `ADMIN_EMAIL` pode entrar. A sessão usa cookies `HttpOnly`, `Secure` e `SameSite=Strict`, com refresh token guardado em cookie HttpOnly.
+- O painel consome APIs do Worker; pedidos, produtos, taxas e configurações são lidos e gravados no Supabase Omega. As imagens são enviadas ao bucket público existente `product-images`.
+- A migração `20261122070000_admin_cloudflare_workers.sql` adiciona somente colunas administrativas e estende a RPC pública para devolver o banner. Não recria tabelas nem remove dados.
+
+### APIs administrativas protegidas
+
+- `/api/admin/session`, `/api/admin/login`, `/api/admin/logout`
+- `/api/admin/overview`, `/api/admin/orders`, `/api/admin/orders/:id`
+- `/api/admin/products`, `/api/admin/products/:id`
+- `/api/admin/delivery-rates`, `/api/admin/delivery-rates/:neighborhood`
+- `/api/admin/store-config`
+
 ## Rotas do Worker
 
 | Método | Rota | Função |

@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gestão | NS Gourmet</title>
+  <link rel="stylesheet" href="/admin.css">
+</head>
+<body>
+  <div class="admin-shell">
+    <aside class="admin-sidebar" id="admin-sidebar">
+      <div class="admin-brand-block">
+        <a class="admin-brand" href="/pedido">NS <strong>Gourmet</strong></a>
+        <button class="sidebar-close" id="sidebar-close" type="button" aria-label="Fechar menu">×</button>
+      </div>
+      <nav class="admin-nav" aria-label="Menu administrativo">
+        <button class="nav-item active" type="button" data-section="dashboard"><span class="nav-icon">⌂</span><span>Visão geral</span></button>
+        <button class="nav-item" type="button" data-section="orders"><span class="nav-icon">▣</span><span>Pedidos</span><b id="pending-badge">0</b></button>
+        <button class="nav-item" type="button" data-section="deliveries"><span class="nav-icon">◷</span><span>Entregadores</span></button>
+        <button class="nav-item" type="button" data-section="products"><span class="nav-icon">♢</span><span>Produtos</span></button>
+        <button class="nav-item" type="button" data-section="finance"><span class="nav-icon">R$</span><span>Financeiro</span></button>
+        <button class="nav-item" type="button" data-section="settings"><span class="nav-icon">⚙</span><span>Configurações</span></button>
+      </nav>
+      <div class="sidebar-footer">
+        <span class="live-dot"></span>
+        <div><strong>Sistema online</strong><small id="sidebar-updated">Sincronizando</small></div>
+      </div>
+    </aside>
+
+    <div class="admin-main">
+      <header class="admin-topbar">
+        <button class="mobile-menu" id="mobile-menu" type="button" aria-label="Abrir menu">☰</button>
+        <div>
+          <span class="topbar-eyebrow">PAINEL DE GESTÃO</span>
+          <h1 id="section-title">Visão geral</h1>
+        </div>
+        <div class="topbar-actions">
+          <span class="sync-status" id="sync-status"><i></i> Atualizado agora</span>
+          <a class="view-store" href="/pedido" target="_blank">Ver cardápio ↗</a>
+          <button class="logout-button" id="logout-button" type="button">Sair</button>
+        </div>
+      </header>
+
+      <main class="admin-content">
+        <section class="admin-section active" id="dashboard-section">
+          <div class="metrics-grid">
+            <article class="metric-card"><span>Faturamento ativo</span><strong id="metric-gross">R$ 0,00</strong><small>Pedidos não cancelados</small></article>
+            <article class="metric-card"><span>Pedidos pendentes</span><strong id="metric-pending">0</strong><small>Aguardando conclusão</small></article>
+            <article class="metric-card"><span>Entregas concluídas</span><strong id="metric-delivered">0</strong><small id="metric-delivered-value">R$ 0,00 recebido</small></article>
+            <article class="metric-card"><span>Produtos ativos</span><strong id="metric-products">0</strong><small id="metric-products-total">0 no catálogo</small></article>
+          </div>
+          <div class="dashboard-grid">
+            <section class="panel-card">
+              <div class="panel-heading"><div><span class="panel-kicker">OPERAÇÃO</span><h2>Pedidos recentes</h2></div><button type="button" data-go="orders">Ver todos</button></div>
+              <div id="recent-orders" class="recent-orders"></div>
+            </section>
+            <section class="panel-card">
+              <div class="panel-heading"><div><span class="panel-kicker">FINANCEIRO</span><h2>Recebimentos</h2></div></div>
+              <div id="payment-breakdown" class="payment-breakdown"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="admin-section" id="orders-section">
+          <div class="section-toolbar">
+            <div class="filter-tabs" id="order-filters">
+              <button class="active" type="button" data-status="todos">Todos</button>
+              <button type="button" data-status="novo">Novos</button>
+              <button type="button" data-status="preparando">Preparando</button>
+              <button type="button" data-status="pronto">Prontos</button>
+              <button type="button" data-status="saiu_entrega">Em entrega</button>
+              <button type="button" data-status="entregue">Entregues</button>
+            </div>
+            <label class="search-field"><span>⌕</span><input id="order-search" type="search" placeholder="Buscar pedido ou cliente"></label>
+          </div>
+          <div class="orders-list" id="orders-list"></div>
+        </section>
+
+        <section class="admin-section" id="deliveries-section">
+          <div class="section-toolbar">
+            <div><span class="panel-kicker">ROTEIRO</span><h2 class="section-subtitle">Entregas em andamento</h2></div>
+          </div>
+          <div class="delivery-grid" id="delivery-list"></div>
+        </section>
+
+        <section class="admin-section" id="products-section">
+          <div class="section-toolbar">
+            <div><span class="panel-kicker">CATÁLOGO</span><h2 class="section-subtitle">Produtos</h2></div>
+            <button class="primary-button" id="new-product" type="button">+ Novo produto</button>
+          </div>
+          <div class="product-toolbar">
+            <label class="search-field"><span>⌕</span><input id="product-search" type="search" placeholder="Buscar produto"></label>
+            <select id="product-category-filter"><option value="">Todas as categorias</option></select>
+          </div>
+          <div class="products-table" id="products-list"></div>
+        </section>
+
+        <section class="admin-section" id="finance-section">
+          <div class="metrics-grid">
+            <article class="metric-card finance-period"><span>Hoje</span><strong id="finance-daily">R$ 0,00</strong><small>Faturamento diário</small></article>
+            <article class="metric-card finance-period"><span>Esta semana</span><strong id="finance-weekly">R$ 0,00</strong><small>Segunda a domingo</small></article>
+            <article class="metric-card finance-period"><span>Este mês</span><strong id="finance-monthly">R$ 0,00</strong><small id="finance-month-label">Faturamento mensal</small></article>
+            <article class="metric-card finance-period"><span>Ticket médio</span><strong id="finance-average">R$ 0,00</strong><small>Por pedido ativo</small></article>
+          </div>
+          <div class="dashboard-grid finance-grid">
+            <section class="panel-card"><div class="panel-heading"><div><span class="panel-kicker">PRODUTOS MAIS CONSUMIDOS</span><h2>Ranking de vendas</h2></div></div><div id="top-products" class="top-products"></div></section>
+            <section class="panel-card"><div class="panel-heading"><div><span class="panel-kicker">MEIOS DE PAGAMENTO</span><h2>Distribuição</h2></div></div><div id="finance-payment" class="payment-breakdown"></div></section>
+          </div>
+          <section class="panel-card finance-status-card"><div class="panel-heading"><div><span class="panel-kicker">MOVIMENTAÇÃO</span><h2>Pedidos por situação</h2></div></div><div id="finance-status" class="status-breakdown"></div></section>
+        </section>
+
+        <section class="admin-section" id="settings-section">
+          <div class="settings-grid">
+            <section class="settings-card">
+              <h2>Banner principal</h2>
+              <p>Imagem exibida no início do cardápio público.</p>
+              <label class="upload-field" for="hero-image-input"><input id="hero-image-input" type="file" accept="image/png,image/jpeg,image/webp"><span>Escolher imagem</span><small>PNG, JPG ou WebP · até 2 MB</small></label>
+              <button id="remove-image" class="quiet-button" type="button">Remover imagem</button>
+            </section>
+            <section class="preview-card"><div class="preview-heading"><span>Prévia</span><small>Desktop</small></div><div id="hero-preview" class="hero-preview"><span id="preview-empty">Nenhuma imagem selecionada</span><img id="hero-preview-image" alt="Prévia do banner" hidden></div></section>
+          </div>
+          <section class="hours-card">
+            <div class="panel-heading"><div><span class="panel-kicker">ATENDIMENTO</span><h2>Horários da semana</h2></div><button id="save-hours" class="primary-button" type="button">Salvar horários</button></div>
+            <div class="hours-grid" id="hours-grid"></div>
+          </section>
+          <section class="delivery-settings-card">
+            <div class="panel-heading"><div><span class="panel-kicker">ENTREGAS</span><h2>Frete por bairro</h2></div></div>
+            <div class="delivery-origin-grid">
+              <label class="form-field"><span>Endereço de origem da confeitaria</span><input id="origin-address" placeholder="Rua, número, bairro - Aracaju/SE"></label>
+              <label class="form-field"><span>Valor por faixa (R$)</span><input id="fallback-cents" type="number" min="0" step="0.01" value="2"></label>
+              <label class="form-field"><span>Distância de cada faixa (km)</span><input id="fallback-km" type="number" min="0.1" step="0.1" value="3"></label>
+              <button id="save-delivery-config" class="primary-button" type="button">Salvar configuração</button>
+            </div>
+            <form id="delivery-rate-form" class="delivery-rate-form">
+              <label class="form-field"><span>Bairro cadastrado</span><input id="delivery-rate-neighborhood" required maxlength="80" placeholder="Ex.: Farolândia"></label>
+              <label class="form-field"><span>Valor do frete (R$)</span><input id="delivery-rate-price" required type="number" min="0" step="0.01" placeholder="5.00"></label>
+              <button class="primary-button" type="submit">Adicionar bairro</button>
+            </form>
+            <div class="delivery-rates-list" id="delivery-rates-list"></div>
+          </section>
+          <button id="save-image" class="primary-button settings-save" type="button">Salvar banner</button>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="product-modal" hidden>
+    <section class="product-modal" role="dialog" aria-modal="true" aria-labelledby="product-modal-title">
+      <div class="modal-heading"><div><span class="panel-kicker">CATÁLOGO</span><h2 id="product-modal-title">Novo produto</h2></div><button id="close-product-modal" type="button" aria-label="Fechar">×</button></div>
+      <form id="product-form">
+        <input id="product-id" type="hidden">
+        <div class="form-grid">
+          <label class="form-field wide"><span>Nome do produto *</span><input id="product-name" required maxlength="120"></label>
+          <label class="form-field"><span>Categoria *</span><input id="product-category" required maxlength="60" list="category-options"></label>
+          <datalist id="category-options"></datalist>
+          <label class="form-field"><span>Preço (R$) *</span><input id="product-price" required type="number" min="0" step="0.01"></label>
+          <label class="form-field wide"><span>Descrição</span><textarea id="product-description" maxlength="500" rows="4" placeholder="Descreva ingredientes, tamanho ou detalhes do produto"></textarea></label>
+          <label class="form-field wide"><span>Imagem do produto</span><input id="product-image" type="file" accept="image/png,image/jpeg,image/webp"></label>
+          <label class="availability-toggle"><input id="product-available" type="checkbox" checked><span><i></i></span><b>Produto disponível no cardápio</b></label>
+        </div>
+        <div class="modal-actions"><button class="quiet-button" id="cancel-product" type="button">Cancelar</button><button class="primary-button" id="save-product" type="submit">Salvar produto</button></div>
+      </form>
+    </section>
+  </div>
+  <div class="toast" id="admin-toast" role="status" aria-live="polite"></div>
+  <script src="/admin.js" defer></script>
+</body>
+</html>
