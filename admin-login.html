@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Acesso | NS Gourmet</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#332921;color:#332921;font:14px "Segoe UI",sans-serif}.login-card{width:min(380px,calc(100% - 32px));background:#fff;border-radius:10px;padding:28px}.login-brand{font:700 22px Georgia;margin-bottom:24px}.login-card h1{font:500 28px Georgia;margin:0 0 6px}.login-card p{color:#786b62;font-size:12px;margin:0 0 22px}.login-field{display:grid;gap:6px;margin-bottom:12px;font-size:11px}.login-field input{height:44px;border:1px solid #e5ded6;border-radius:7px;padding:0 11px}.login-button{width:100%;height:44px;border:0;border-radius:7px;background:#825f4d;color:#fff;font-weight:700;margin-top:6px}.login-status{min-height:18px;color:#9a5b52;font-size:11px;margin:10px 0 0}
+  </style>
+</head>
+<body>
+  <main class="login-card">
+    <div class="login-brand">NS Gourmet</div>
+    <h1>Acesso administrativo</h1>
+    <p>Entre com as credenciais configuradas no ambiente seguro.</p>
+    <form id="login-form">
+      <label class="login-field"><span>Usuário</span><input id="username" autocomplete="username" required></label>
+      <label class="login-field"><span>Senha</span><input id="password" type="password" autocomplete="current-password" required></label>
+      <button class="login-button" type="submit">Entrar no painel</button>
+      <p class="login-status" id="login-status" role="status"></p>
+    </form>
+  </main>
+  <script>
+    document.getElementById("login-form").addEventListener("submit", async event => {
+      event.preventDefault();
+      const button = event.currentTarget.querySelector("button");
+      button.disabled=true; button.textContent="Entrando...";
+      try{
+        const response=await fetch("/api/admin/login",{method:"POST",headers":{"Content-Type":"application/json"},body:JSON.stringify({username:document.getElementById("username").value,password:document.getElementById("password").value})});
+        const data=await response.json();
+        if(!response.ok)throw new Error(data.error||"Não foi possível entrar.");
+        location.replace("/admin");
+      }catch(error){document.getElementById("login-status").textContent=error.message;button.disabled=false;button.textContent="Entrar no painel";}
+    });
+  </script>
+</body>
+</html>

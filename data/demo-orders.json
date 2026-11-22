@@ -1,0 +1,17 @@
+[
+  {
+    "requestId": "audit-1795319979642",
+    "orderId": "demo-1795319979651",
+    "customerName": "Teste",
+    "paymentMethod": "pix",
+    "items": [
+      {
+        "name": "Brownie de Ninho com Nutella",
+        "quantity": 1,
+        "unitPriceCents": 1000
+      }
+    ],
+    "totalCents": 1000,
+    "createdAt": "2026-11-22T03:59:39.651Z"
+  }
+]

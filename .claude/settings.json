@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "default": "deny",
+    "allow": [
+      {
+        "name": "Bash",
+        "reason": "Publicar código no GitHub"
+      },
+      {
+        "name": "PowerShell",
+        "reason": "Publicar código no GitHub"
+      },
+      {
+        "name": "Git",
+        "reason": "Publicar código no GitHub"
+      }
+    ]
+  }
+}
