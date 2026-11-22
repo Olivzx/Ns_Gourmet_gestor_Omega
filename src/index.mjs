@@ -137,6 +137,24 @@ async function createPublicOrder(request, env) {
   const parsed = await readOrder(request);
   if (parsed.error) return json({ error: parsed.error }, parsed.status);
 
+  if (!env.PUBLIC_ORDER_LIMITER) {
+    return json({ error: "A proteção contra excesso de pedidos não está configurada." }, 503);
+  }
+
+  try {
+    const clientIp = request.headers.get("cf-connecting-ip") || "unknown";
+    const limit = await env.PUBLIC_ORDER_LIMITER.limit({ key: clientIp });
+    if (!limit.success) {
+      return json(
+        { error: "Muitas tentativas em pouco tempo. Aguarde um minuto e tente novamente." },
+        429,
+        { "retry-after": "60" },
+      );
+    }
+  } catch {
+    return json({ error: "Não foi possível validar a solicitação agora." }, 503);
+  }
+
   const result = await callSupabaseRpc(env, "create_public_order", {
     p_order: parsed.value,
   });
