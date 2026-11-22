@@ -636,13 +636,16 @@ export default {
       return createPublicOrder(request, env);
     }
     if (url.pathname.startsWith("/api/admin/")) return routeAdminApi(request, env);
-    if (url.pathname === "/admin" || url.pathname === "/admin/") {
+    if (url.pathname === "/admin" || url.pathname === "/admin/" || url.pathname === "/admin.html") {
       const context = await getAdminContext(request, env);
       const target = context.user ? "/admin.html" : "/admin-login.html";
       const assetRequest = new Request(new URL(target, request.url), request);
       return withCookies(await env.ASSETS.fetch(assetRequest), context.cookies);
     }
     if (url.pathname === "/admin-login") return Response.redirect(new URL("/admin", request.url), 302);
+    if (url.pathname === "/pedido" || url.pathname === "/pedido/") {
+      return env.ASSETS.fetch(new Request(new URL("/pedido.html", request.url), request));
+    }
     if (url.pathname.startsWith("/api/")) return json({ error: "Rota não encontrada." }, 404);
     if (env.ASSETS) return env.ASSETS.fetch(request);
     return new Response("Not Found", { status: 404 });
