@@ -264,8 +264,9 @@ test("admin login JavaScript is served directly by the Worker", async () => {
   const response = await worker.fetch(request("/admin-login.js"), env);
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type"), /javascript/);
-  assert.match(await response.text(), /\/api\/admin\/login/);
-  assert.match(await response.text(), /\/api\/admin\/session/);
+  const script = await response.text();
+  assert.match(script, /\/api\/admin\/login/);
+  assert.match(script, /\/api\/admin\/session/);
 });
 
 test("admin route serves login page until the Supabase session is verified", async () => {
@@ -278,7 +279,7 @@ test("admin route serves login page until the Supabase session is verified", asy
     },
   });
   assert.equal(response.status, 200);
-  assert.equal(await response.text(), "/admin-login.html");
+  assert.match(await response.text(), /src="\/admin-login\.js" defer/);
 });
 
 test("direct admin html URL is also protected", async () => {
@@ -290,5 +291,5 @@ test("direct admin html URL is also protected", async () => {
       },
     },
   });
-  assert.equal(await response.text(), "/admin-login.html");
+  assert.match(await response.text(), /src="\/admin-login\.js" defer/);
 });
