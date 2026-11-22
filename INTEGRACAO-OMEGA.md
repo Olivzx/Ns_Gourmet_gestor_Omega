@@ -37,8 +37,11 @@ O comando solicita o valor interativamente. Não inclua o valor em argumentos, a
 
 O Worker executa primeiro em `/api/*). As demais requisições são atendidas pelo diretório `public/` via Workers Static Assets.
 
+## Proteção contra abuso
+
+O Worker usa o binding `PUBLIC_ORDER_LIMITER`: 12 envios por IP em 60 segundos. O Rate Limiting API do Workers é aproximado e contabilizado por localização Cloudflare; não é um limite global estrito.
+
 ## Pontos a resolver antes de produção ampla
 
-1. Criar uma regra de rate limiting para `POST /api/public-order/orders`.
+1. Cadastrar o secret e validar os dois endpoints em preview com uma solicitação de teste controlada.
 2. Decidir se bairros não cadastrados devem ser aceitos. A UI atual calcula frete estimado por distância, mas a RPC atual exige uma taxa cadastrada e rejeita bairros fora da tabela.
-3. Cadastrar o secret e validar os dois endpoints em preview com uma solicitação de teste controlada.
