@@ -19,13 +19,19 @@ As RPCs existentes continuam responsáveis por:
 - prevenção de duplicidade por requestId;
 - persistência de pedidos e itens.
 
-O Worker usa `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY) como secrets. A chave privilegiada nunca pode ser enviada ao navegador.
+A URL do projeto fica em `SUPABASE_URL` (variável não secreta no Wrangler). A chave privilegiada fica exclusivamente em `SUPABASE_SERVICE_ROLE_KEY), como secret do Worker. Nunca envie essa chave ao navegador, ao GitHub ou a logs.
 
 ## Secrets locais e produção
 
-Local: copie os nomes para `.dev.vars` (arquivo ignorado pelo Git).
+Local: copie `.dev.vars.example` para `.dev.vars` e preencha a chave privilegiada usando credenciais de desenvolvimento. O arquivo `.dev.vars` é ignorado pelo Git.
 
-Produção: use `wrangler secret put` para cadastrar cada secret no Worker correto. Não inclua os valores no repositório nem em logs.
+Produção: configure a chave diretamente no Worker correto com:
+
+```bash
+npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY
+```
+
+O comando solicita o valor interativamente. Não inclua o valor em argumentos, arquivos versionados ou no chat.
 
 ## Rotas e assets
 
@@ -35,4 +41,4 @@ O Worker executa primeiro em `/api/*). As demais requisições são atendidas pe
 
 1. Criar uma regra de rate limiting para `POST /api/public-order/orders`.
 2. Decidir se bairros não cadastrados devem ser aceitos. A UI atual calcula frete estimado por distância, mas a RPC atual exige uma taxa cadastrada e rejeita bairros fora da tabela.
-3. Configurar secrets e validar os dois endpoints em preview com uma solicitação de teste controlada.
+3. Cadastrar o secret e validar os dois endpoints em preview com uma solicitação de teste controlada.
