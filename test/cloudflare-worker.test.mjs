@@ -293,3 +293,96 @@ test("direct admin html URL is also protected", async () => {
   });
   assert.match(await response.text(), /src="\/admin-login\.js" defer/);
 });
+
+
+test("admin store config persists business hours and returns the saved row", async () => {
+  const originalFetch = globalThis.fetch;
+  let patchBody;
+  globalThis.fetch = async (url, options = {}) => {
+    if (String(url).endsWith("/auth/v1/user")) return Response.json({ email: "ns_gourmet@profissional.com" });
+    if (String(url).includes("/rest/v1/public_store_settings") && options.method === "PATCH") {
+      patchBody = JSON.parse(options.body);
+      return Response.json([{
+        business_hours: patchBody.business_hours,
+        business_hours_enabled: patchBody.business_hours_enabled,
+        accepting_orders: true,
+        time_zone: "America/Maceio",
+        origin_address: "",
+        delivery_fallback_cents: 200,
+        delivery_fallback_km: 3,
+      }]);
+    }
+    if (String(url).includes("/rest/v1/public_store_settings")) {
+      return Response.json([{
+        business_hours: {},
+        business_hours_enabled: false,
+        accepting_orders: false,
+        time_zone: "America/Maceio",
+      }]);
+    }
+    throw new Error("Unexpected Supabase request: " + url);
+  };
+  const businessHours = Object.fromEntries(["mon","tue","wed","thu","fri","sat","sun"].map(day => [day, {
+    closed: day === "sun", open: "12:30", close: "19:00",
+  }]));
+  try {
+    const response = await worker.fetch(request("/api/admin/store-config", {
+      method: "POST",
+      headers: {
+        origin: "https://nsgourmet.test",
+        cookie: "nsg_admin_access=test-access",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ businessHours, acceptingOrders: true }),
+    }), env);
+    const body = await response.json();
+    assert.equal(response.status, 200);
+    assert.deepEqual(patchBody.business_hours, businessHours);
+    assert.equal(patchBody.business_hours_enabled, true);
+    assert.equal(patchBody.accepting_orders, true);
+    assert.deepEqual(body.config.businessHours, businessHours);
+    assert.equal(body.config.acceptingOrders, true);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("admin store config rejects invalid or incomplete business hours", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    if (String(url).endsWith("/auth/v1/user")) return Response.json({ email: "ns_gourmet@profissional.com" });
+    if (String(url).includes("/rest/v1/public_store_settings")) return Response.json([{
+      business_hours: {}, business_hours_enabled: false, accepting_orders: false,
+    }]);
+    throw new Error("The invalid schedule must not be written");
+  };
+  try {
+    const response = await worker.fetch(request("/api/admin/store-config", {
+      method: "POST",
+      headers: {
+        origin: "https://nsgourmet.test",
+        cookie: "nsg_admin_access=test-access",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ businessHours: { mon: { closed: false, open: "19:00", close: "12:30" } } }),
+    }), env);
+    assert.equal(response.status, 400);
+    assert.match((await response.json()).error, /horários/i);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+
+test("admin and public order JavaScript are served directly by the Worker", async () => {
+  const adminResponse = await worker.fetch(request("/admin.js"), env);
+  const publicResponse = await worker.fetch(request("/pedido.js"), env);
+  const adminScript = await adminResponse.text();
+  const publicScript = await publicResponse.text();
+  assert.equal(adminResponse.status, 200);
+  assert.equal(publicResponse.status, 200);
+  assert.match(adminResponse.headers.get("content-type"), /javascript/i);
+  assert.match(publicResponse.headers.get("content-type"), /javascript/i);
+  assert.match(adminScript, /accepting-orders-toggle/);
+  assert.match(publicScript, /Horario automático desativado|Horário automático desativado/);
+});
