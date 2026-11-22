@@ -1,7 +1,7 @@
 (() => {
 const $ = id => document.getElementById(id);
 const brl = cents => new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(cents/100);
-const state = {products:[],rates:[],cart:{},category:"Todos",fallbackCents:200,fallbackKm:3};
+const state = {products:[],rates:[],cart:{},category:"Todos",fallbackCents:200,fallbackKm:3,ordersOpen:false};
 const esc = s => String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 async function init(){
  try{
@@ -27,7 +27,22 @@ function products(){
  $("menu-empty").hidden=list.length>0;$("menu-status").textContent="Selecione os produtos para adicionar à sua cestinha.";
 }
 function neighborhoods(){ $("customer-neighborhood").innerHTML='<option value="">Selecione seu bairro</option>'+state.rates.map(r=>'<option value="'+esc(r.neighborhood)+'">'+esc(r.neighborhood)+' · '+brl(r.feeCents)+'</option>').join("")+'<option value="__unregistered">Outro bairro / não cadastrado</option>'; }
-function hours(h){if(!h)return;$("business-hours-status").textContent=h.isOpen===false?"No momento estamos fechados":"Estamos recebendo pedidos";$("business-hours-badge").textContent=h.isOpen===false?"Fechado":"Aberto";$("business-hours-badge").classList.toggle("is-open",h.isOpen!==false);$("business-hours-detail").textContent="Segunda a sábado, das 12h30 às 19h.";}
+function hours(h){
+ if(!h)return;
+ state.ordersOpen=h.isOpen===true;
+ const days=[["mon","Seg"],["tue","Ter"],["wed","Qua"],["thu","Qui"],["fri","Sex"],["sat","Sáb"],["sun","Dom"]];
+ const formatTime=value=>String(value||"").slice(0,5).replace(":","h");
+ const schedule=h.schedule||{};
+ const detail=h.enabled
+  ? days.map(([key,label])=>{const day=schedule[key];if(!day)return label+": não definido";return label+": "+(day.closed?"fechado":formatTime(day.open)+"–"+formatTime(day.close));}).join(" · ")
+  : "Horário automático desativado.";
+ const open=state.ordersOpen;
+ $("business-hours-status").textContent=open?"Estamos recebendo pedidos":(h.enabled?"No momento estamos fechados":"Recebimento de pedidos pausado pela loja");
+ $("business-hours-badge").textContent=open?"Aberto":"Fechado";
+ $("business-hours-badge").classList.toggle("is-open",open);
+ $("business-hours-detail").textContent=detail;
+ cart();
+}
 function updateFallbackDistance(){ const unregistered=$("customer-neighborhood").value==="__unregistered"; $("fallback-distance-field").hidden=!unregistered; $("delivery-distance").required=unregistered; $("customer-neighborhood-name").required=unregistered; if(!unregistered){$("delivery-distance").value="";$("customer-neighborhood-name").value="";} }
 function fee(){if($("fulfillment-type").value!=="delivery")return 0;const r=state.rates.find(x=>x.neighborhood===$("customer-neighborhood").value);if(r)return r.feeCents;if($("customer-neighborhood").value==="__unregistered"){const distance=Math.max(0,Number($("delivery-distance").value||0));return Math.ceil(distance/(state.fallbackKm||3))*(state.fallbackCents||200);}return 0;}
 function cart(){
@@ -36,7 +51,9 @@ function cart(){
  const sub=items.reduce((s,[id,n])=>s+state.products.find(p=>p.id===id).unitPriceCents*n,0),total=sub+fee();
  $("cart-subtotal").textContent=brl(sub);$("cart-freight").textContent=brl(fee());$("cart-total").textContent=brl(total);
  const count=items.reduce((s,x)=>s+x[1],0);$("mobile-cart-count").textContent=count;$("mobile-cart-count").hidden=!count;
- $("submit-order").disabled=!count;products();
+ $("submit-order").disabled=!count||!state.ordersOpen;
+ $("submit-order").textContent=state.ordersOpen?"Confirmar pedido →":"Pedidos fechados no momento";
+ products();
 }
 function openCart(){const panel=$("checkout-panel");$("mobile-checkout-slot").append(panel);$("mobile-checkout-overlay").hidden=false;document.body.classList.add("checkout-open");$("mobile-cart-trigger").setAttribute("aria-expanded","true");$("mobile-checkout-close").focus();}
 function closeCart(){const panel=$("checkout-panel");$("mobile-checkout-overlay").hidden=true;document.body.classList.remove("checkout-open");$("mobile-cart-trigger").setAttribute("aria-expanded","false");$("order-layout").append(panel);}
@@ -53,7 +70,9 @@ $("mobile-cart-trigger").addEventListener("click",openCart);
 $("mobile-checkout-close").addEventListener("click",closeCart);
 $("mobile-checkout-backdrop").addEventListener("click",closeCart);
 $("public-order-form").addEventListener("submit",async e=>{
- e.preventDefault();if(!e.currentTarget.reportValidity())return;
+ e.preventDefault();
+ if(!state.ordersOpen){alert("A loja não está recebendo pedidos neste momento. Confira os horários de atendimento.");return;}
+ if(!e.currentTarget.reportValidity())return;
  const neighborhood=$("customer-neighborhood").value==="__unregistered"?$("customer-neighborhood-name").value:$("customer-neighborhood").value;
  const payload={requestId:crypto.randomUUID(),customerName:$("customer-name").value,phone:$("customer-phone").value,address:$("customer-address").value,neighborhood,distanceKm:Number($("delivery-distance").value||0),fulfillmentType:$("fulfillment-type").value,paymentMethod:$("payment-method").value,notes:$("order-notes").value,items:Object.entries(state.cart).filter(x=>x[1]>0).map(([productId,quantity])=>({productId,quantity}))};
  const btn=$("submit-order");btn.disabled=true;btn.textContent="Enviando…";
