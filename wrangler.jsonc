@@ -3,6 +3,9 @@
   "name": "ns-gourmet-gestor-omega",
   "main": "./src/index.mjs",
   "compatibility_date": "2026-11-22",
+  "vars": {
+    "SUPABASE_URL": "https://kluxlinnqtlitnbwafdj.supabase.co"
+  },
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
