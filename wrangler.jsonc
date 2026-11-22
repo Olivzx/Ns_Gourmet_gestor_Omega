@@ -5,7 +5,8 @@
   "compatibility_date": "2026-11-22",
   "vars": {
     "SUPABASE_URL": "https://kluxlinnqtlitnbwafdj.supabase.co",
-    "ADMIN_EMAIL": "ns_gourmet@profissional.com"
+    "ADMIN_EMAIL": "ns_gourmet@profissional.com",
+    "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_78gp2D405BISAERmTzPv_g_GGdW2UDs"
   },
   "assets": {
     "directory": "./public",
@@ -41,7 +42,8 @@
   "previews": {
     "vars": {
       "SUPABASE_URL": "https://preview.invalid",
-      "ADMIN_EMAIL": "ns_gourmet@profissional.com"
+      "ADMIN_EMAIL": "ns_gourmet@profissional.com",
+      "SUPABASE_PUBLISHABLE_KEY": "preview-disabled"
     },
     "ratelimits": [
       {
