@@ -7,6 +7,8 @@ const JSON_HEADERS = {
 const MAX_ORDER_BYTES = 32 * 1024;
 const MAX_ADMIN_BYTES = 3 * 1024 * 1024;
 const ADMIN_EMAIL = "ns_gourmet@profissional.com";
+const ADMIN_LOGIN_HTML = "<!doctype html>\n<html lang=\"pt-BR\">\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <title>Acesso | NS Gourmet</title>\n  <style>\n    *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#332921;color:#332921;font:14px \"Segoe UI\",sans-serif}.login-card{width:min(380px,calc(100% - 32px));background:#fff;border-radius:10px;padding:28px}.login-brand{font:700 22px Georgia;margin-bottom:24px}.login-card h1{font:500 28px Georgia;margin:0 0 6px}.login-card p{color:#786b62;font-size:12px;margin:0 0 22px}.login-field{display:grid;gap:6px;margin-bottom:12px;font-size:11px}.login-field input{height:44px;border:1px solid #e5ded6;border-radius:7px;padding:0 11px}.login-button{width:100%;height:44px;border:0;border-radius:7px;background:#825f4d;color:#fff;font-weight:700;margin-top:6px}.login-status{min-height:18px;color:#9a5b52;font-size:11px;margin:10px 0 0}\n  </style>\n</head>\n<body>\n  <main class=\"login-card\">\n    <div class=\"login-brand\">NS Gourmet</div>\n    <h1>Acesso administrativo</h1>\n    <p>Entre com as credenciais configuradas no ambiente seguro.</p>\n    <form id=\"login-form\">\n      <label class=\"login-field\"><span>E-mail</span><input id=\"username\" type=\"email\" autocomplete=\"username\" placeholder=\"ns_gourmet@profissional.com\" required></label>\n      <label class=\"login-field\"><span>Senha</span><input id=\"password\" type=\"password\" autocomplete=\"current-password\" required></label>\n      <button class=\"login-button\" type=\"submit\">Entrar no painel</button>\n      <p class=\"login-status\" id=\"login-status\" role=\"status\"></p>\n    </form>\n  </main>\n  <script src=\"/admin-login.js\" defer></script>\n</body>\n</html>\n";
+const ADMIN_LOGIN_JS = "(() => {\n  const form = document.getElementById(\"login-form\");\n  if (!form) return;\n\n  const email = document.getElementById(\"username\");\n  const password = document.getElementById(\"password\");\n  const status = document.getElementById(\"login-status\");\n  const button = form.querySelector('button[type=\"submit\"]');\n\n  form.addEventListener(\"submit\", async event => {\n    event.preventDefault();\n    status.textContent = \"\";\n    button.disabled = true;\n    button.textContent = \"Entrando...\";\n\n    try {\n      const response = await fetch(\"/api/admin/login\", {\n        method: \"POST\",\n        credentials: \"same-origin\",\n        headers: { \"Content-Type\": \"application/json\", \"Accept\": \"application/json\" },\n        body: JSON.stringify({ username: email.value.trim(), password: password.value })\n      });\n      const data = await response.json().catch(() => ({}));\n      if (!response.ok) throw new Error(data.error || \"Não foi possível autenticar.\");\n\n      const sessionResponse = await fetch(\"/api/admin/session\", {\n        method: \"GET\",\n        credentials: \"same-origin\",\n        cache: \"no-store\",\n        headers: { \"Accept\": \"application/json\" }\n      });\n      const session = await sessionResponse.json().catch(() => ({}));\n      if (!sessionResponse.ok || session.authenticated !== true) {\n        throw new Error(\"A senha foi aceita, mas o navegador não confirmou a sessão administrativa. Verifique se os cookies deste site estão permitidos e tente novamente.\");\n      }\n\n      status.textContent = \"Acesso confirmado. Abrindo painel...\";\n      location.replace(\"/admin\");\n    } catch (error) {\n      status.textContent = error instanceof Error ? error.message : \"Falha inesperada ao entrar.\";\n      password.value = \"\";\n      password.focus();\n      button.disabled = false;\n      button.textContent = \"Entrar no painel\";\n    }\n  });\n})();\n";
 const ORDER_STATUS_TO_UI = {
   received: "novo",
   new: "novo",
@@ -646,13 +648,20 @@ export default {
       return createPublicOrder(request, env);
     }
     if (url.pathname.startsWith("/api/admin/")) return routeAdminApi(request, env);
+    if (url.pathname === "/admin-login.js") {
+      return new Response(ADMIN_LOGIN_JS, { headers: { "content-type": "application/javascript; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff" } });
+    }
+    if (url.pathname === "/admin-login" || url.pathname === "/admin-login.html") {
+      return new Response(ADMIN_LOGIN_HTML, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff" } });
+    }
     if (url.pathname === "/admin" || url.pathname === "/admin/" || url.pathname === "/admin.html") {
       const context = await getAdminContext(request, env);
-      const target = context.user ? "/admin.html" : "/admin-login.html";
-      const assetRequest = new Request(new URL(target, request.url), request);
+      if (!context.user) {
+        return withCookies(new Response(ADMIN_LOGIN_HTML, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff" } }), context.cookies);
+      }
+      const assetRequest = new Request(new URL("/admin.html", request.url), request);
       return withCookies(await env.ASSETS.fetch(assetRequest), context.cookies);
     }
-    if (url.pathname === "/admin-login") return env.ASSETS.fetch(new Request(new URL("/admin-login.html", request.url), request));
     if (url.pathname === "/pedido" || url.pathname === "/pedido/") {
       return env.ASSETS.fetch(new Request(new URL("/pedido.html", request.url), request));
     }
