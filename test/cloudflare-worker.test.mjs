@@ -383,7 +383,7 @@ test("admin and public order JavaScript are served directly by the Worker", asyn
   assert.equal(publicResponse.status, 200);
   assert.match(adminResponse.headers.get("content-type"), /javascript/i);
   assert.match(publicResponse.headers.get("content-type"), /javascript/i);
-  assert.match(adminScript, /accepting-orders-toggle/);
+  assert.match(adminScript, /store-mode-controls|Abrir loja agora/);
   assert.match(publicScript, /Horario automático desativado|Horário automático desativado/);
 });
 
