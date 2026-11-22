@@ -117,8 +117,11 @@ test("order endpoint returns a controlled error when Supabase secrets are missin
     method: "POST",
     headers: { origin: "https://nsgourmet.test", "content-type": "application/json" },
     body: JSON.stringify({ requestId: "test" }),
-  }), {});
+  }), {
+    PUBLIC_ORDER_LIMITER: { async limit() { return { success: true }; } },
+  });
   assert.equal(response.status, 503);
+  assert.match((await response.clone().json()).error, /banco ainda não foi configurada/i);
 });
 
 test("unknown API routes return JSON 404", async () => {
