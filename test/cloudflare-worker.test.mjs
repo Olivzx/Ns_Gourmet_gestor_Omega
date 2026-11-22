@@ -5,6 +5,7 @@ import worker from "../src/index.mjs";
 const env = {
   SUPABASE_URL: "https://example.supabase.co",
   SUPABASE_SERVICE_ROLE_KEY: "test-secret",
+  SUPABASE_PUBLISHABLE_KEY: "test-publishable",
   PUBLIC_ORDER_LIMITER: { async limit() { return { success: true }; } },
 };
 
@@ -32,7 +33,7 @@ test("menu endpoint accepts GET and calls the existing Supabase RPC", async () =
     assert.equal(body.storeName, "NS Gourmet");
     assert.equal(body.demo, false);
     assert.equal(call.url, "https://example.supabase.co/rest/v1/rpc/public_order_menu");
-    assert.equal(call.options.headers.apikey, "test-secret");
+    assert.equal(call.options.headers.apikey, "test-publishable");
   } finally {
     globalThis.fetch = originalFetch;
   }
