@@ -27,8 +27,7 @@ BEGIN
     day_key := (ARRAY['sun','mon','tue','wed','thu','fri','sat'])[extract(dow FROM now() AT TIME ZONE tz)::int + 1];
     day_config := schedule -> day_key;
     current_time_local := (now() AT TIME ZONE tz)::time;
-    is_open := COALESCE(s.accepting_orders,false)
-      AND COALESCE((day_config ->> 'closed')::boolean,false) = false
+    is_open := COALESCE((day_config ->> 'closed')::boolean,false) = false
       AND NULLIF(day_config ->> 'open','') IS NOT NULL
       AND NULLIF(day_config ->> 'close','') IS NOT NULL
       AND current_time_local >= (day_config ->> 'open')::time
