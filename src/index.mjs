@@ -100,6 +100,12 @@ async function readJsonBody(request, maxBytes = MAX_ORDER_BYTES) {
   }
 }
 
+function getSupabaseAuthApiKey(env) {
+  // User authentication uses the low-privilege project key. The service-role
+  // key remains server-only for the Worker's protected database operations.
+  return env.SUPABASE_PUBLISHABLE_KEY || env.SUPABASE_ANON_KEY || "";
+}
+
 function getSupabaseConfig(env) {
   const supabaseUrl = env.SUPABASE_URL;
   const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
@@ -189,10 +195,10 @@ async function createPublicOrder(request, env) {
 
 async function verifySupabaseUser(env, accessToken) {
   const config = getSupabaseConfig(env);
-  if (config.error) return null;
+  if (config.error || !getSupabaseAuthApiKey(env)) return null;
   try {
     const response = await fetch(config.url + "/auth/v1/user", {
-      headers: { apikey: config.key, authorization: "Bearer " + accessToken },
+      headers: { apikey: getSupabaseAuthApiKey(env), authorization: "Bearer " + accessToken },
     });
     if (!response.ok) return null;
     return await response.json();
@@ -203,11 +209,11 @@ async function verifySupabaseUser(env, accessToken) {
 
 async function refreshSupabaseSession(env, refreshToken) {
   const config = getSupabaseConfig(env);
-  if (config.error || !refreshToken) return null;
+  if (config.error || !refreshToken || !getSupabaseAuthApiKey(env)) return null;
   try {
     const response = await fetch(config.url + "/auth/v1/token?grant_type=refresh_token", {
       method: "POST",
-      headers: { apikey: config.key, "content-type": "application/json" },
+      headers: { apikey: getSupabaseAuthApiKey(env), "content-type": "application/json" },
       body: JSON.stringify({ refresh_token: refreshToken }),
     });
     if (!response.ok) return null;
@@ -251,15 +257,19 @@ async function adminLogin(request, env) {
   if (username !== allowedEmail) return json({ error: "Usuário ou senha incorretos." }, 401);
   const config = getSupabaseConfig(env);
   if (config.error) return json({ error: config.error }, 503);
+  if (!getSupabaseAuthApiKey(env)) return json({ error: "A chave pública de autenticação do Supabase não foi configurada no Worker." }, 503);
   try {
     const response = await fetch(config.url + "/auth/v1/token?grant_type=password", {
       method: "POST",
-      headers: { apikey: config.key, "content-type": "application/json" },
+      headers: { apikey: getSupabaseAuthApiKey(env), "content-type": "application/json" },
       body: JSON.stringify({ email: username, password }),
     });
     const session = await response.json().catch(() => ({}));
     if (!response.ok || !session.access_token || !session.refresh_token || !session.user) {
-      return json({ error: "E-mail ou senha incorretos." }, 401);
+      if (response.status === 400 || response.status === 401) {
+        return json({ error: "E-mail ou senha incorretos." }, 401);
+      }
+      return json({ error: "O serviço de autenticação do Supabase está indisponível. Tente novamente em instantes." }, 503);
     }
     if (String(session.user.email || "").toLowerCase() !== allowedEmail) {
       return json({ error: "Esta conta não tem permissão administrativa." }, 403);
