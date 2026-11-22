@@ -20,18 +20,6 @@
       <p class="login-status" id="login-status" role="status"></p>
     </form>
   </main>
-  <script>
-    document.getElementById("login-form").addEventListener("submit", async event => {
-      event.preventDefault();
-      const button = event.currentTarget.querySelector("button");
-      button.disabled=true; button.textContent="Entrando...";
-      try{
-        const response=await fetch("/api/admin/login",{method:"POST",headers":{"Content-Type":"application/json"},body:JSON.stringify({username:document.getElementById("username").value,password:document.getElementById("password").value})});
-        const data=await response.json();
-        if(!response.ok)throw new Error(data.error||"Não foi possível entrar.");
-        location.replace("/admin");
-      }catch(error){document.getElementById("login-status").textContent=error.message;button.disabled=false;button.textContent="Entrar no painel";}
-    });
-  </script>
+  <script src="/admin-login.js" defer></script>
 </body>
 </html>
