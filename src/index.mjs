@@ -573,6 +573,9 @@ async function adminStoreConfig(request, env) {
     return json({
       heroImageDataUrl: current.hero_image_url || "",
       businessHours: current.business_hours || {},
+      businessHoursEnabled: current.business_hours_enabled === true,
+      acceptingOrders: current.accepting_orders === true,
+      timeZone: current.time_zone || "America/Maceio",
       originAddress: current.origin_address || "",
       deliveryFallbackCents: Number(current.delivery_fallback_cents ?? 200),
       deliveryFallbackKm: Number(current.delivery_fallback_km ?? 3),
@@ -591,9 +594,30 @@ async function adminStoreConfig(request, env) {
       patch.hero_image_url = input.heroImageDataUrl;
     } else return json({ error: "Imagem do banner inválida." }, 400);
   }
-  if (input.businessHours && typeof input.businessHours === "object" && !Array.isArray(input.businessHours)) {
-    patch.business_hours = input.businessHours;
+  if (Object.hasOwn(input, "businessHours")) {
+    if (!input.businessHours || typeof input.businessHours !== "object" || Array.isArray(input.businessHours)) {
+      return json({ error: "A configuração dos horários é inválida." }, 400);
+    }
+    const dayKeys = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+    const normalizedHours = {};
+    for (const dayKey of dayKeys) {
+      const day = input.businessHours[dayKey];
+      if (!day || typeof day !== "object" || typeof day.closed !== "boolean") {
+        return json({ error: "Informe os horários de todos os dias da semana." }, 400);
+      }
+      const open = String(day.open || "");
+      const close = String(day.close || "");
+      if (!day.closed && (!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(open) || !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(close) || open >= close)) {
+        return json({ error: "Confira os horários: a abertura deve ser anterior ao fechamento." }, 400);
+      }
+      normalizedHours[dayKey] = { closed: day.closed, open: day.closed ? (open || "09:00") : open, close: day.closed ? (close || "18:00") : close };
+    }
+    patch.business_hours = normalizedHours;
     patch.business_hours_enabled = true;
+  }
+  if (typeof input.acceptingOrders !== "undefined") {
+    if (typeof input.acceptingOrders !== "boolean") return json({ error: "O estado de recebimento de pedidos é inválido." }, 400);
+    patch.accepting_orders = input.acceptingOrders;
   }
   if (typeof input.originAddress === "string") patch.origin_address = input.originAddress.trim().slice(0, 300);
   if (typeof input.deliveryFallbackCents !== "undefined") {
@@ -613,7 +637,20 @@ async function adminStoreConfig(request, env) {
     body: JSON.stringify(patch),
   });
   if (!updated.ok) return json({ error: updated.error }, updated.status);
-  return json({ ok: true });
+  const saved = updated.data?.[0];
+  if (!saved) return json({ error: "O banco não confirmou a atualização das configurações da loja." }, 500);
+  return json({
+    ok: true,
+    config: {
+      businessHours: saved.business_hours || {},
+      businessHoursEnabled: saved.business_hours_enabled === true,
+      acceptingOrders: saved.accepting_orders === true,
+      timeZone: saved.time_zone || "America/Maceio",
+      originAddress: saved.origin_address || "",
+      deliveryFallbackCents: Number(saved.delivery_fallback_cents ?? 200),
+      deliveryFallbackKm: Number(saved.delivery_fallback_km ?? 3),
+    },
+  });
 }
 
 async function routeAdminApi(request, env) {
