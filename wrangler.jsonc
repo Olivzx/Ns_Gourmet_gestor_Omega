@@ -36,5 +36,21 @@
         "period": 60
       }
     }
-  ]
+  ],
+  "previews": {
+    "vars": {
+      "SUPABASE_URL": "https://preview.invalid",
+      "ADMIN_EMAIL": "ns_gourmet@profissional.com"
+    },
+    "ratelimits": [
+      {
+        "name": "PUBLIC_ORDER_LIMITER",
+        "namespace_id": "2026112202",
+        "simple": {
+          "limit": 12,
+          "period": 60
+        }
+      }
+    ]
+  }
 }
