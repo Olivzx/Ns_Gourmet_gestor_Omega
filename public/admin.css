@@ -139,3 +139,11 @@ button,a{cursor:pointer}
 @media(max-width:760px){.admin-shell{grid-template-columns:1fr}.admin-sidebar{position:fixed;z-index:50;left:-260px;width:238px;transition:.2s}.admin-sidebar.open{left:0}.sidebar-close{display:block;border:0;background:transparent;color:#fff;font-size:22px}.admin-topbar{height:72px;padding:0 16px}.mobile-menu{display:block;border:0;background:transparent;font-size:20px}.admin-topbar h1{font-size:23px}.topbar-eyebrow,.sync-status,.view-store{display:none}.admin-content{padding:20px 16px 40px}.metrics-grid{grid-template-columns:1fr 1fr;gap:8px}.metric-card{padding:14px}.metric-card strong{font-size:21px}.dashboard-grid,.finance-grid{grid-template-columns:1fr}.recent-order{grid-template-columns:1fr 90px}.recent-order>:nth-child(3){display:none}.section-toolbar{align-items:flex-start;flex-direction:column}.filter-tabs{width:100%;overflow-x:auto;flex-wrap:nowrap}.filter-tabs button{white-space:nowrap}.search-field{width:100%;min-width:0}.order-card{grid-template-columns:1fr}.order-total{text-align:left}.delivery-grid{grid-template-columns:1fr}.product-toolbar{justify-content:stretch}.product-toolbar select{width:140px}.products-table{overflow-x:auto}.product-row{min-width:680px}.settings-grid{grid-template-columns:1fr}.hero-preview{height:220px}.form-grid{grid-template-columns:1fr}.form-field.wide{grid-column:auto}}
 @media(max-width:760px){.hour-row{grid-template-columns:1fr 90px 100px 100px}.status-breakdown{grid-template-columns:1fr}.top-product-row{grid-template-columns:minmax(120px,1fr) 70px 45px}}
 @media(max-width:760px){.delivery-origin-grid,.delivery-rate-form{grid-template-columns:1fr}.delivery-rate-row{grid-template-columns:1fr}.delivery-rate-actions{justify-content:flex-start}}
+
+
+/* Alertas de novos pedidos */
+.notification-toggle{min-height:36px;border:1px solid var(--line);border-radius:7px;padding:0 12px;background:#fff;color:var(--wine);font-size:11px;font-weight:700;white-space:nowrap}
+.notification-toggle:hover:not(:disabled){background:#f7f1eb;border-color:#cbb6a7}
+.notification-toggle.is-enabled{border-color:#d8e5d3;background:#edf4ea;color:#54714d}
+.notification-toggle:disabled{cursor:default;opacity:1}
+@media(max-width:760px){.notification-toggle{display:inline-flex;align-items:center;min-height:32px;padding:0 9px;font-size:10px}.topbar-actions{gap:8px}}
