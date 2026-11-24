@@ -654,6 +654,7 @@
     }
   });
 
+  initializeOrderNotifications();
   loadConfig();
   loadDeliveryRates();
   refresh({ silent: false });
