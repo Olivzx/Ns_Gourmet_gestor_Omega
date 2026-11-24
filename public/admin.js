@@ -8,6 +8,9 @@
   let heroImageDataUrl = "";
   let pollingTimer = null;
   let deliveryRates = [];
+  let knownOrderIds = null;
+  let notificationAudioContext = null;
+  const NOTIFICATION_ENABLED_KEY = "ns-gourmet-order-notifications-v1";
 
   async function api(url, options = {}) {
     const response = await fetch(url, options);
@@ -169,9 +172,73 @@
         </div>`).join("") : '<div class="empty-state">Nenhum produto encontrado.</div>'}`;
   }
 
+  function playOrderAlert() {
+    try {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) return;
+      notificationAudioContext ||= new AudioContextClass();
+      if (notificationAudioContext.state === "suspended") notificationAudioContext.resume();
+      const oscillator = notificationAudioContext.createOscillator();
+      const gain = notificationAudioContext.createGain();
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(880, notificationAudioContext.currentTime);
+      oscillator.frequency.setValueAtTime(1175, notificationAudioContext.currentTime + 0.13);
+      gain.gain.setValueAtTime(0.0001, notificationAudioContext.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.18, notificationAudioContext.currentTime + 0.025);
+      gain.gain.exponentialRampToValueAtTime(0.0001, notificationAudioContext.currentTime + 0.38);
+      oscillator.connect(gain); gain.connect(notificationAudioContext.destination);
+      oscillator.start(); oscillator.stop(notificationAudioContext.currentTime + 0.4);
+    } catch (error) { /* alerta visual permanece disponível */ }
+  }
+
+  function notifyNewOrders(newOrders) {
+    newOrders.forEach(order => {
+      const shortId = String(order.orderId || "").slice(-8).toUpperCase();
+      toast("Novo pedido #" + shortId + " de " + (order.customerName || "Cliente") + " · " + brl(order.totalCents));
+      playOrderAlert();
+      if ("Notification" in window && Notification.permission === "granted") {
+        const notification = new Notification("Novo pedido — NS Gourmet", {
+          body: (order.customerName || "Cliente") + " · " + brl(order.totalCents) + " · " + (order.fulfillmentType === "pickup" ? "Retirada" : "Entrega"),
+          icon: "/favicon.svg", tag: "ns-gourmet-order-" + order.orderId, renotify: true
+        });
+        notification.onclick = () => { window.focus(); openSection("orders"); notification.close(); };
+      }
+    });
+  }
+
+  async function enableOrderNotifications() {
+    const button = $("notification-toggle");
+    if (!("Notification" in window)) { toast("Este navegador não oferece notificações de área de trabalho."); return; }
+    if (Notification.permission === "denied") { toast("As notificações estão bloqueadas. Libere-as nas permissões do navegador."); return; }
+    try {
+      const permission = Notification.permission === "default" ? await Notification.requestPermission() : Notification.permission;
+      if (permission !== "granted") { toast("Permissão de notificações não concedida."); return; }
+      try { const AudioContextClass = window.AudioContext || window.webkitAudioContext; if (AudioContextClass) { notificationAudioContext ||= new AudioContextClass(); await notificationAudioContext.resume(); } } catch (error) {}
+      localStorage.setItem(NOTIFICATION_ENABLED_KEY, "true");
+      button.textContent = "Alertas ativados"; button.classList.add("is-enabled"); button.disabled = true;
+      toast("Alertas de novos pedidos ativados neste navegador.");
+    } catch (error) { toast("Não foi possível ativar as notificações."); }
+  }
+
+  function initializeOrderNotifications() {
+    const button = $("notification-toggle"); if (!button) return;
+    if (!("Notification" in window)) { button.textContent = "Alertas indisponíveis"; button.disabled = true; return; }
+    if (Notification.permission === "granted" && localStorage.getItem(NOTIFICATION_ENABLED_KEY) === "true") {
+      button.textContent = "Alertas ativados"; button.classList.add("is-enabled"); button.disabled = true;
+    } else if (Notification.permission === "denied") { button.textContent = "Alertas bloqueados"; button.title = "Libere as notificações nas permissões do navegador."; }
+    button.addEventListener("click", enableOrderNotifications);
+  }
   async function refresh({ silent = true } = {}) {
     try {
       overview = await api("/api/admin/overview");
+      const currentOrders = Array.isArray(overview.orders) ? overview.orders : [];
+      const currentIds = new Set(currentOrders.map(order => String(order.orderId)));
+      if (knownOrderIds === null) knownOrderIds = currentIds;
+      else {
+        const newOrders = currentOrders.filter(order => !knownOrderIds.has(String(order.orderId)) && order.status === "novo");
+        knownOrderIds = currentIds;
+        if (newOrders.length) notifyNewOrders(newOrders.reverse());
+      }
       render();
       const time = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(new Date());
       $("sync-status").innerHTML = `<i></i> Atualizado às ${time}`;
