@@ -6,12 +6,8 @@
   let overview = { totals: {}, orders: [], products: [], paymentTotals: {} };
   let orderFilter = "todos";
   let heroImageDataUrl = "";
-  let heroSlides = [];
   let pollingTimer = null;
   let deliveryRates = [];
-  let knownOrderIds = null;
-  let notificationAudioContext = null;
-  const NOTIFICATION_ENABLED_KEY = "ns-gourmet-order-notifications-v1";
 
   async function api(url, options = {}) {
     const response = await fetch(url, options);
@@ -44,6 +40,105 @@
 
   function orderItems(order) {
     return (order.items || []).map(item => `${item.quantity}× ${item.name}`).join(", ");
+  }
+
+  const PRINT_SETTINGS_KEY = "ns-gourmet-print-settings-v1";
+  const defaultPrintSettings = {
+    layout: "receipt", fontSize: 10, margin: 2, storeName: "NS Gourmet",
+    showPhone: true, showAddress: true, showNotes: true, showPayment: true, showPrices: true,
+  };
+  let printSettings = { ...defaultPrintSettings };
+
+  function loadPrintSettings() {
+    try { printSettings = { ...defaultPrintSettings, ...JSON.parse(localStorage.getItem(PRINT_SETTINGS_KEY) || "{}") }; }
+    catch { printSettings = { ...defaultPrintSettings }; }
+  }
+  function savePrintSettings() {
+    printSettings = {
+      layout: $("print-layout").value === "label" ? "label" : "receipt",
+      fontSize: Math.min(12, Math.max(9, Number($("print-font-size").value) || 10)),
+      margin: Math.min(4, Math.max(1, Number($("print-margin").value) || 2)),
+      storeName: $("print-store-name").value.trim().slice(0, 60) || "NS Gourmet",
+      showPhone: $("print-show-phone").checked, showAddress: $("print-show-address").checked,
+      showNotes: $("print-show-notes").checked, showPayment: $("print-show-payment").checked,
+      showPrices: $("print-show-prices").checked,
+    };
+    localStorage.setItem(PRINT_SETTINGS_KEY, JSON.stringify(printSettings));
+    toast("Configuração de impressão salva neste navegador.");
+  }
+  function renderPrintSettings() {
+    if (!$("print-layout")) return;
+    $("print-layout").value = printSettings.layout;
+    $("print-font-size").value = String(printSettings.fontSize);
+    $("print-margin").value = String(printSettings.margin);
+    $("print-store-name").value = printSettings.storeName;
+    $("print-show-phone").checked = printSettings.showPhone;
+    $("print-show-address").checked = printSettings.showAddress;
+    $("print-show-notes").checked = printSettings.showNotes;
+    $("print-show-payment").checked = printSettings.showPayment;
+    $("print-show-prices").checked = printSettings.showPrices;
+  }
+  function ensurePrintSettings() {
+    if ($("print-settings-card")) return;
+    const card = document.createElement("section");
+    card.className = "hours-card print-settings-card";
+    card.id = "print-settings-card";
+    card.innerHTML = `
+      <div class="panel-heading"><div><span class="panel-kicker">IMPRESSÃO</span><h2>Impressora térmica / etiquetadora</h2></div><span class="store-mode-status">58 mm</span></div>
+      <p>Configure o formato do comprovante. Essas preferências ficam salvas neste navegador e podem ser diferentes em cada computador.</p>
+      <div class="print-settings-grid">
+        <label class="form-field"><span>Modelo de impressão</span><select id="print-layout"><option value="receipt">Cupom térmico detalhado</option><option value="label">Etiqueta compacta</option></select></label>
+        <label class="form-field"><span>Tamanho da fonte</span><select id="print-font-size"><option value="9">Pequena (9 pt)</option><option value="10">Padrão (10 pt)</option><option value="11">Média (11 pt)</option><option value="12">Grande (12 pt)</option></select></label>
+        <label class="form-field"><span>Margem (mm)</span><select id="print-margin"><option value="1">1 mm</option><option value="2">2 mm</option><option value="3">3 mm</option><option value="4">4 mm</option></select></label>
+        <label class="form-field"><span>Nome no cabeçalho</span><input id="print-store-name" maxlength="60" value="NS Gourmet"></label>
+      </div>
+      <div class="print-options">
+        <label><input id="print-show-phone" type="checkbox"> Incluir telefone do cliente</label>
+        <label><input id="print-show-address" type="checkbox"> Incluir endereço / bairro</label>
+        <label><input id="print-show-notes" type="checkbox"> Incluir observações</label>
+        <label><input id="print-show-payment" type="checkbox"> Incluir forma de pagamento</label>
+        <label><input id="print-show-prices" type="checkbox"> Exibir valores dos itens</label>
+      </div>
+      <div class="print-settings-actions"><button id="save-print-settings" class="primary-button" type="button">Salvar impressão</button><button id="test-print" class="quiet-button" type="button">Imprimir teste</button></div>
+      <p class="print-help">Ao imprimir, escolha sua impressora e configure papel personalizado de 58 mm nas preferências do driver. O navegador abrirá a janela de impressão; a impressão silenciosa depende de software/driver local.</p>`;
+    const style = document.createElement("style");
+    style.textContent = `.print-settings-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:16px 0}.print-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin:12px 0}.print-options label{display:flex;align-items:center;gap:8px;color:#62574f;font-size:13px}.print-settings-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}.print-help{font-size:12px;color:#887b71;line-height:1.5;margin-top:14px}.print-order-button{margin-top:8px;padding:7px 11px;border:1px solid #ded4ca;border-radius:7px;background:#fff;color:#59483d;cursor:pointer;font:inherit;font-size:12px}.print-order-button:hover{background:#f7f1eb}@media(max-width:640px){.print-settings-actions button{flex:1}}`;
+    document.head.appendChild(style);
+    const settings = $("settings-section");
+    const hours = settings?.querySelector(".hours-card");
+    if (settings) settings.insertBefore(card, hours?.nextSibling || null);
+  }
+  function printOrder(order) {
+    const settings = printSettings;
+    const popup = window.open("", "_blank", "width=420,height=720");
+    if (!popup) { toast("O navegador bloqueou a janela. Permita pop-ups para este site e tente novamente."); return; }
+    const labelMode = settings.layout === "label";
+    const itemRows = (order.items || []).map(item => {
+      const quantity = Number(item.quantity || 0);
+      const price = Number(item.unitPriceCents || 0) * quantity;
+      return `<div class="item"><div class="item-name">${esc(quantity + "x " + item.name)}</div>${settings.showPrices && !labelMode ? `<strong>${brl(price)}</strong>` : ""}</div>`;
+    }).join("");
+    const payment = ({ pix: "Pix", cash: "Dinheiro", debit: "Débito", credit: "Crédito" })[order.paymentMethod] || order.paymentMethod || "Não informado";
+    const address = [order.address, order.neighborhood].filter(Boolean).join(" · ");
+    const details = [
+      settings.showPhone && order.phone ? `<div><b>Telefone:</b> ${esc(order.phone)}</div>` : "",
+      settings.showAddress && order.fulfillmentType !== "pickup" && address ? `<div><b>Endereço:</b> ${esc(address)}</div>` : "",
+      settings.showPayment ? `<div><b>Pagamento:</b> ${esc(payment)}</div>` : "",
+      order.courier ? `<div><b>Entregador:</b> ${esc(order.courier)}</div>` : "",
+      settings.showNotes && order.notes ? `<div class="notes"><b>Obs.:</b> ${esc(order.notes)}</div>` : "",
+    ].join("");
+    const totalBlock = !labelMode ? `<div class="totals"><div><span>Subtotal</span><b>${brl(order.subtotalCents)}</b></div><div><span>Entrega</span><b>${brl(order.deliveryFeeCents)}</b></div><div class="grand"><span>TOTAL</span><b>${brl(order.totalCents)}</b></div></div>` : "";
+    const date = order.createdAt ? formatDate(order.createdAt) : formatDate(new Date().toISOString());
+    popup.document.open();
+    popup.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pedido ${esc(order.orderId)}</title>
+      <style>@page{size:58mm auto;margin:0}*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;color:#000}body{width:58mm;padding:${settings.margin}mm;font-family:Arial,Helvetica,sans-serif;font-size:${settings.fontSize}pt;line-height:1.3}.paper{width:100%;overflow-wrap:anywhere}header{text-align:center;border-bottom:1px dashed #000;padding-bottom:7px;margin-bottom:7px}header h1{font-size:1.35em;margin:0 0 3px;font-weight:800}header p{margin:2px 0;font-size:.9em}.order-no{font-size:1.15em;font-weight:800;text-align:center;margin:7px 0}.meta{font-size:.9em;margin:4px 0}.section{border-top:1px dashed #000;margin-top:8px;padding-top:7px}.section-title{font-weight:800;text-transform:uppercase;margin-bottom:5px}.item{display:flex;justify-content:space-between;gap:5px;margin:5px 0}.item-name{flex:1;min-width:0}.totals{border-top:1px dashed #000;margin-top:8px;padding-top:7px}.totals div{display:flex;justify-content:space-between;gap:5px;margin:3px 0}.grand{font-size:1.2em;font-weight:900;border-top:1px solid #000;padding-top:5px;margin-top:6px!important}.notes{border:1px solid #000;padding:5px;margin-top:6px}footer{text-align:center;border-top:1px dashed #000;margin-top:10px;padding-top:7px;font-size:.85em}.label .order-no{font-size:1.4em}.label .section{margin-top:5px;padding-top:5px}</style></head><body><main class="paper ${labelMode ? "label" : ""}">
+      <header><h1>${esc(settings.storeName)}</h1><p>${labelMode ? "IDENTIFICAÇÃO DO PEDIDO" : "COMPROVANTE DO PEDIDO"}</p></header>
+      <div class="order-no">PEDIDO #${esc(String(order.orderId).slice(-8).toUpperCase())}</div>
+      <div class="meta"><b>Cliente:</b> ${esc(order.customerName || "Cliente")}</div><div class="meta"><b>Data:</b> ${esc(date)}</div><div class="meta"><b>Tipo:</b> ${order.fulfillmentType === "pickup" ? "Retirada" : "Entrega"}</div>
+      ${details ? `<div class="section">${details}</div>` : ""}<div class="section"><div class="section-title">Itens do pedido</div>${itemRows || "<div>Sem itens</div>"}</div>
+      ${totalBlock}${!labelMode ? "<footer>Obrigada pela preferência! ♡</footer>" : ""}
+      </main><script>window.addEventListener("load",()=>{setTimeout(()=>{window.focus();window.print();},250)});<\/script></body></html>`);
+    popup.document.close();
   }
 
   function statusSelect(order) {
@@ -122,7 +217,7 @@
         <div class="order-client"><strong>${esc(order.customerName)}</strong><small>${esc(order.phone || "Sem telefone")} · ${formatDate(order.createdAt)}</small><span class="status-pill ${esc(order.status)}">${esc(statusLabels[order.status] || "Novo")}</span></div>
         <div class="order-address"><strong>${esc(order.fulfillmentType === "pickup" ? "Retirada na loja" : "Entrega")}</strong><small>${esc(order.address || "Sem endereço")}${order.neighborhood ? " · " + esc(order.neighborhood) : ""}</small><div class="order-items">${esc(orderItems(order))}</div>${order.fulfillmentType !== "pickup" && order.address ? `<a class="map-link" href="${mapsUrl(order)}" target="_blank" rel="noopener noreferrer">Abrir no Google Maps ↗</a>` : ""}</div>
         <div class="order-actions">${statusSelect(order)}<input data-courier="${esc(order.orderId)}" value="${esc(order.courier || "")}" placeholder="Nome do entregador" aria-label="Entregador"></div>
-        <div class="order-total"><strong>${brl(order.totalCents)}</strong><small>${esc((order.paymentMethod || "Pagamento").replace("pix", "Pix").replace("cash", "Dinheiro").replace("debit", "Débito").replace("credit", "Crédito"))}</small></div>
+        <div class="order-total"><strong>${brl(order.totalCents)}</strong><small>${esc((order.paymentMethod || "Pagamento").replace("pix", "Pix").replace("cash", "Dinheiro").replace("debit", "Débito").replace("credit", "Crédito"))}</small><button type="button" class="print-order-button" data-print-order="${esc(order.orderId)}">Imprimir pedido</button></div>
       </article>`).join("") : '<div class="empty-state">Nenhum pedido encontrado.</div>';
   }
 
@@ -174,73 +269,9 @@
         </div>`).join("") : '<div class="empty-state">Nenhum produto encontrado.</div>'}`;
   }
 
-  function playOrderAlert() {
-    try {
-      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContextClass) return;
-      notificationAudioContext ||= new AudioContextClass();
-      if (notificationAudioContext.state === "suspended") notificationAudioContext.resume();
-      const oscillator = notificationAudioContext.createOscillator();
-      const gain = notificationAudioContext.createGain();
-      oscillator.type = "sine";
-      oscillator.frequency.setValueAtTime(880, notificationAudioContext.currentTime);
-      oscillator.frequency.setValueAtTime(1175, notificationAudioContext.currentTime + 0.13);
-      gain.gain.setValueAtTime(0.0001, notificationAudioContext.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.18, notificationAudioContext.currentTime + 0.025);
-      gain.gain.exponentialRampToValueAtTime(0.0001, notificationAudioContext.currentTime + 0.38);
-      oscillator.connect(gain); gain.connect(notificationAudioContext.destination);
-      oscillator.start(); oscillator.stop(notificationAudioContext.currentTime + 0.4);
-    } catch (error) { /* alerta visual permanece disponível */ }
-  }
-
-  function notifyNewOrders(newOrders) {
-    newOrders.forEach(order => {
-      const shortId = String(order.orderId || "").slice(-8).toUpperCase();
-      toast("Novo pedido #" + shortId + " de " + (order.customerName || "Cliente") + " · " + brl(order.totalCents));
-      playOrderAlert();
-      if ("Notification" in window && Notification.permission === "granted") {
-        const notification = new Notification("Novo pedido — NS Gourmet", {
-          body: (order.customerName || "Cliente") + " · " + brl(order.totalCents) + " · " + (order.fulfillmentType === "pickup" ? "Retirada" : "Entrega"),
-          icon: "/favicon.svg", tag: "ns-gourmet-order-" + order.orderId, renotify: true
-        });
-        notification.onclick = () => { window.focus(); openSection("orders"); notification.close(); };
-      }
-    });
-  }
-
-  async function enableOrderNotifications() {
-    const button = $("notification-toggle");
-    if (!("Notification" in window)) { toast("Este navegador não oferece notificações de área de trabalho."); return; }
-    if (Notification.permission === "denied") { toast("As notificações estão bloqueadas. Libere-as nas permissões do navegador."); return; }
-    try {
-      const permission = Notification.permission === "default" ? await Notification.requestPermission() : Notification.permission;
-      if (permission !== "granted") { toast("Permissão de notificações não concedida."); return; }
-      try { const AudioContextClass = window.AudioContext || window.webkitAudioContext; if (AudioContextClass) { notificationAudioContext ||= new AudioContextClass(); await notificationAudioContext.resume(); } } catch (error) {}
-      localStorage.setItem(NOTIFICATION_ENABLED_KEY, "true");
-      button.textContent = "Alertas ativados"; button.classList.add("is-enabled"); button.disabled = true;
-      toast("Alertas de novos pedidos ativados neste navegador.");
-    } catch (error) { toast("Não foi possível ativar as notificações."); }
-  }
-
-  function initializeOrderNotifications() {
-    const button = $("notification-toggle"); if (!button) return;
-    if (!("Notification" in window)) { button.textContent = "Alertas indisponíveis"; button.disabled = true; return; }
-    if (Notification.permission === "granted" && localStorage.getItem(NOTIFICATION_ENABLED_KEY) === "true") {
-      button.textContent = "Alertas ativados"; button.classList.add("is-enabled"); button.disabled = true;
-    } else if (Notification.permission === "denied") { button.textContent = "Alertas bloqueados"; button.title = "Libere as notificações nas permissões do navegador."; }
-    button.addEventListener("click", enableOrderNotifications);
-  }
   async function refresh({ silent = true } = {}) {
     try {
       overview = await api("/api/admin/overview");
-      const currentOrders = Array.isArray(overview.orders) ? overview.orders : [];
-      const currentIds = new Set(currentOrders.map(order => String(order.orderId)));
-      if (knownOrderIds === null) knownOrderIds = currentIds;
-      else {
-        const newOrders = currentOrders.filter(order => !knownOrderIds.has(String(order.orderId)) && order.status === "novo");
-        knownOrderIds = currentIds;
-        if (newOrders.length) notifyNewOrders(newOrders.reverse());
-      }
       render();
       const time = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(new Date());
       $("sync-status").innerHTML = `<i></i> Atualizado às ${time}`;
@@ -324,6 +355,12 @@
   });
 
   document.addEventListener("click", async event => {
+    const printButton = event.target.closest("[data-print-order]");
+    if (printButton) {
+      const order = (overview.orders || []).find(item => String(item.orderId) === printButton.dataset.printOrder);
+      if (order) printOrder(order);
+      return;
+    }
     const confirmation = event.target.closest("[data-confirm-delivery]");
     if (confirmation) {
       try {
@@ -464,14 +501,6 @@
     try {
       const config = await api("/api/admin/store-config");
       setPreview(config.heroImageDataUrl || "");
-      heroSlides = Array.isArray(config.heroSlides) ? config.heroSlides.map(slide => ({ url: slide.url, alt: slide.alt || "Destaque da loja" })) : [];
-      renderHeroSlides();
-      $("hero-slide-interval").value = String(config.heroSlideIntervalSeconds || 3);
-      $("hero-slides-enabled").checked = config.heroSlidesEnabled !== false;
-      $("whatsapp-number").value = config.whatsapp || "";
-      $("whatsapp-contact-name").value = config.whatsappContactName || "NS Gourmet";
-      $("whatsapp-enabled").checked = config.whatsappEnabled !== false;
-      $("whatsapp-template").value = config.whatsappMessageTemplate || "";
       renderHours(config.businessHours || {});
       $("origin-address").value = config.originAddress || "";
       renderStoreMode(config.manualOpenOverride);
@@ -482,76 +511,6 @@
     }
   }
 
-  function renderHeroSlides() {
-    const list = $("hero-slides-list");
-    if (!list) return;
-    list.innerHTML = heroSlides.length ? heroSlides.map((slide, index) => `
-      <div class="hero-slide-admin">
-        <img src="${esc(slide.url || slide.imageDataUrl || "")}" alt="">
-        <span>Slide ${index + 1}</span>
-        <div class="hero-slide-admin-actions">
-          <button type="button" data-slide-up="${index}" ${index === 0 ? "disabled" : ""}>↑</button>
-          <button type="button" data-slide-down="${index}" ${index === heroSlides.length - 1 ? "disabled" : ""}>↓</button>
-          <button type="button" data-slide-remove="${index}">Remover</button>
-        </div>
-      </div>`).join("") : '<p class="empty-state">Nenhuma imagem adicionada. O banner principal continuará sendo usado como alternativa.</p>';
-  }
-  function readSlideFile(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result || ""));
-      reader.onerror = () => reject(new Error("Não foi possível ler uma das imagens."));
-      reader.readAsDataURL(file);
-    });
-  }
-  $("hero-slides-input").addEventListener("change", async event => {
-    const files = [...(event.target.files || [])];
-    if (heroSlides.length + files.length > 6) { toast("O carrossel aceita no máximo 6 imagens."); event.target.value = ""; return; }
-    if (files.some(file => !["image/png", "image/jpeg", "image/webp"].includes(file.type) || file.size > 2 * 1024 * 1024)) {
-      toast("Cada imagem deve ser JPG, PNG ou WebP e ter até 2 MB."); event.target.value = ""; return;
-    }
-    try {
-      const dataUrls = await Promise.all(files.map(readSlideFile));
-      dataUrls.forEach((imageDataUrl, index) => heroSlides.push({ imageDataUrl, alt: files[index].name.replace(/\.[^.]+$/, "").slice(0, 120) || "Destaque da loja" }));
-      renderHeroSlides();
-    } catch (error) { toast(error.message); }
-    event.target.value = "";
-  });
-  $("hero-slides-list").addEventListener("click", event => {
-    const remove = event.target.closest("[data-slide-remove]");
-    const up = event.target.closest("[data-slide-up]");
-    const down = event.target.closest("[data-slide-down]");
-    if (remove) heroSlides.splice(Number(remove.dataset.slideRemove), 1);
-    else if (up) { const i = Number(up.dataset.slideUp); if (i > 0) [heroSlides[i - 1], heroSlides[i]] = [heroSlides[i], heroSlides[i - 1]]; }
-    else if (down) { const i = Number(down.dataset.slideDown); if (i < heroSlides.length - 1) [heroSlides[i + 1], heroSlides[i]] = [heroSlides[i], heroSlides[i + 1]]; }
-    else return;
-    renderHeroSlides();
-  });
-  $("save-hero-slides").addEventListener("click", async () => {
-    const button = $("save-hero-slides");
-    button.disabled = true; button.textContent = "Enviando imagens...";
-    try {
-      await api("/api/admin/store-config", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ heroSlides, heroSlidesEnabled: $("hero-slides-enabled").checked, heroSlideIntervalSeconds: Number($("hero-slide-interval").value || 3) }),
-      });
-      await loadConfig();
-      toast("Carrossel salvo e imagens enviadas ao armazenamento.");
-    } catch (error) { toast(error.message); }
-    finally { button.disabled = false; button.textContent = "Salvar carrossel"; }
-  });
-  $("save-whatsapp-config").addEventListener("click", async () => {
-    const button = $("save-whatsapp-config");
-    button.disabled = true; button.textContent = "Salvando...";
-    try {
-      await api("/api/admin/store-config", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ whatsapp: $("whatsapp-number").value, whatsappContactName: $("whatsapp-contact-name").value, whatsappEnabled: $("whatsapp-enabled").checked, whatsappMessageTemplate: $("whatsapp-template").value }),
-      });
-      toast("Configuração de WhatsApp salva.");
-    } catch (error) { toast(error.message); }
-    finally { button.disabled = false; button.textContent = "Salvar WhatsApp"; }
-  });
   $("hero-image-input").addEventListener("change", event => {
     const file = event.target.files[0];
     if (!file) return;
@@ -637,6 +596,11 @@
     document.querySelectorAll("[data-store-mode]").forEach(button => button.classList.toggle("active", button.dataset.storeMode === activeMode));
   }
   ensureAcceptanceControl();
+  loadPrintSettings();
+  ensurePrintSettings();
+  renderPrintSettings();
+  $("save-print-settings").addEventListener("click", savePrintSettings);
+  $("test-print").addEventListener("click", () => printOrder({ orderId: "TESTE-58MM", customerName: "Cliente de teste", phone: "(79) 99999-9999", address: "Rua Exemplo, 123", neighborhood: "Centro", fulfillmentType: "delivery", paymentMethod: "pix", notes: "Teste de impressão da NS Gourmet.", items: [{ name: "Produto de teste", quantity: 2, unitPriceCents: 1500 }], subtotalCents: 3000, deliveryFeeCents: 500, totalCents: 3500, createdAt: new Date().toISOString() }));
 
   $("store-mode-controls").addEventListener("click", async event => {
     const button = event.target.closest("[data-store-mode]");
@@ -736,9 +700,102 @@
     }
   });
 
-  initializeOrderNotifications();
   loadConfig();
   loadDeliveryRates();
   refresh({ silent: false });
   pollingTimer = setInterval(() => refresh(), 5000);
+})();
+
+(() => {
+  const $ = id => document.getElementById(id);
+  if (!$("save-whatsapp-config")) return;
+  const api = async (url, options = {}) => {
+    const response = await fetch(url, options);
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "Não foi possível salvar a configuração.");
+    return data;
+  };
+  const toast = message => {
+    const element = $("admin-toast");
+    if (!element) return;
+    element.textContent = message;
+    element.classList.add("show");
+    setTimeout(() => element.classList.remove("show"), 2600);
+  };
+  let slides = [];
+  const esc = value => String(value || "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  function renderSlides() {
+    const list = $("hero-slides-list");
+    if (!list) return;
+    list.innerHTML = slides.length ? slides.map((slide, index) =>
+      '<div class="hero-slide-admin"><img src="' + esc(slide.url || slide.imageDataUrl || "") + '" alt=""><span>Slide ' + (index + 1) + '</span><div class="hero-slide-admin-actions">' +
+      '<button type="button" data-slide-up="' + index + '"' + (index === 0 ? " disabled" : "") + '>↑</button>' +
+      '<button type="button" data-slide-down="' + index + '"' + (index === slides.length - 1 ? " disabled" : "") + '>↓</button>' +
+      '<button type="button" data-slide-remove="' + index + '">Remover</button></div></div>'
+    ).join("") : '<p class="empty-state">Nenhuma imagem adicionada. O banner principal continuará sendo usado como alternativa.</p>';
+  }
+  const readFile = file => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("Não foi possível ler uma das imagens."));
+    reader.readAsDataURL(file);
+  });
+  async function loadConfig() {
+    try {
+      const config = await api("/api/admin/store-config");
+      $("whatsapp-number").value = config.whatsapp || "";
+      $("whatsapp-contact-name").value = config.whatsappContactName || "NS Gourmet";
+      $("whatsapp-enabled").checked = config.whatsappEnabled !== false;
+      $("whatsapp-template").value = config.whatsappMessageTemplate || "";
+      slides = Array.isArray(config.heroSlides) ? config.heroSlides.map(slide => ({url:slide.url,alt:slide.alt || "Destaque da loja"})) : [];
+      $("hero-slide-interval").value = String(config.heroSlideIntervalSeconds || 3);
+      $("hero-slides-enabled").checked = config.heroSlidesEnabled !== false;
+      renderSlides();
+    } catch (error) { toast(error.message); }
+  }
+  $("hero-slides-input").addEventListener("change", async event => {
+    const files = [...(event.target.files || [])];
+    if (slides.length + files.length > 6) { toast("O carrossel aceita no máximo 6 imagens."); event.target.value = ""; return; }
+    if (files.some(file => !["image/png","image/jpeg","image/webp"].includes(file.type) || file.size > 2 * 1024 * 1024)) {
+      toast("Cada imagem deve ser JPG, PNG ou WebP e ter até 2 MB."); event.target.value = ""; return;
+    }
+    try {
+      const data = await Promise.all(files.map(readFile));
+      data.forEach((imageDataUrl, index) => slides.push({imageDataUrl,alt:files[index].name.replace(/\.[^.]+$/,"").slice(0,120) || "Destaque da loja"}));
+      renderSlides();
+    } catch (error) { toast(error.message); }
+    event.target.value = "";
+  });
+  $("hero-slides-list").addEventListener("click", event => {
+    const remove = event.target.closest("[data-slide-remove]");
+    const up = event.target.closest("[data-slide-up]");
+    const down = event.target.closest("[data-slide-down]");
+    if (remove) slides.splice(Number(remove.dataset.slideRemove),1);
+    else if (up) { const i=Number(up.dataset.slideUp); if(i>0) [slides[i-1],slides[i]]=[slides[i],slides[i-1]]; }
+    else if (down) { const i=Number(down.dataset.slideDown); if(i<slides.length-1) [slides[i+1],slides[i]]=[slides[i],slides[i+1]]; }
+    else return;
+    renderSlides();
+  });
+  $("save-hero-slides").addEventListener("click", async () => {
+    const button=$("save-hero-slides"); button.disabled=true; button.textContent="Enviando imagens...";
+    try {
+      await api("/api/admin/store-config",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+        heroSlides:slides,heroSlidesEnabled:$("hero-slides-enabled").checked,heroSlideIntervalSeconds:Number($("hero-slide-interval").value || 3)
+      })});
+      await loadConfig(); toast("Carrossel salvo e imagens enviadas ao armazenamento.");
+    } catch(error){toast(error.message);}
+    finally{button.disabled=false;button.textContent="Salvar carrossel";}
+  });
+  $("save-whatsapp-config").addEventListener("click", async () => {
+    const button=$("save-whatsapp-config"); button.disabled=true; button.textContent="Salvando...";
+    try {
+      await api("/api/admin/store-config",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+        whatsapp:$("whatsapp-number").value,whatsappContactName:$("whatsapp-contact-name").value,
+        whatsappEnabled:$("whatsapp-enabled").checked,whatsappMessageTemplate:$("whatsapp-template").value
+      })});
+      toast("Configuração de WhatsApp salva.");
+    } catch(error){toast(error.message);}
+    finally{button.disabled=false;button.textContent="Salvar WhatsApp";}
+  });
+  loadConfig();
 })();
