@@ -151,7 +151,28 @@
             </form>
             <div class="delivery-rates-list" id="delivery-rates-list"></div>
           </section>
-          <button id="save-image" class="primary-button settings-save" type="button">Salvar banner</button>
+          <section class="hours-card">
+            <div class="panel-heading"><div><span class="panel-kicker">WHATSAPP</span><h2>Encaminhamento de pedidos</h2></div></div>
+            <div class="contact-settings-grid">
+              <label class="form-field"><span>Número de destino (com DDD)</span><input id="whatsapp-number" inputmode="numeric" maxlength="20" placeholder="5579999999999"></label>
+              <label class="form-field"><span>Nome exibido na mensagem</span><input id="whatsapp-contact-name" maxlength="100" placeholder="NS Gourmet"></label>
+              <label class="contact-enabled"><input id="whatsapp-enabled" type="checkbox" checked> Exibir botão para enviar pedido pelo WhatsApp</label>
+            </div>
+            <label class="form-field"><span>Mensagem padrão / modelo</span><textarea id="whatsapp-template" rows="9" maxlength="4000" placeholder="*NOVO PEDIDO — {{empresa}}*&#10;Pedido: #{{pedido}}&#10;Cliente: {{cliente}}&#10;Telefone: {{telefone}}&#10;Modalidade: {{modalidade}}&#10;Endereço: {{endereco}}&#10;Bairro: {{bairro}}&#10;&#10;*ITENS*&#10;{{produtos}}&#10;&#10;Subtotal: {{subtotal}}&#10;Frete: {{frete}}&#10;*TOTAL: {{total}}*&#10;Pagamento: {{pagamento}}&#10;Observações: {{observacoes}}"></textarea></label>
+            <p class="settings-hint">Variáveis: {{empresa}}, {{pedido}}, {{cliente}}, {{telefone}}, {{modalidade}}, {{produtos}}, {{subtotal}}, {{frete}}, {{total}}, {{pagamento}}, {{endereco}}, {{bairro}} e {{observacoes}}.</p>
+            <button id="save-whatsapp-config" class="primary-button" type="button">Salvar WhatsApp</button>
+          </section>
+          <section class="hours-card">
+            <div class="panel-heading"><div><span class="panel-kicker">BANNERS</span><h2>Carrossel de destaques</h2></div></div>
+            <p>Selecione até 6 imagens. Elas serão exibidas no topo do cardápio em sequência, com repetição contínua.</p>
+            <div class="slide-settings-grid">
+              <label class="upload-field" for="hero-slides-input"><input id="hero-slides-input" type="file" accept="image/png,image/jpeg,image/webp" multiple><span>Adicionar imagens</span><small>JPG, PNG ou WebP · até 2 MB por imagem</small></label>
+              <label class="form-field"><span>Intervalo entre slides (segundos)</span><input id="hero-slide-interval" type="number" min="2" max="30" step="1" value="3"></label>
+              <label class="contact-enabled"><input id="hero-slides-enabled" type="checkbox" checked> Ativar carrossel na página pública</label>
+            </div>
+            <div id="hero-slides-list" class="hero-slides-list"><p class="empty-state">Nenhuma imagem adicionada.</p></div>
+            <button id="save-hero-slides" class="primary-button" type="button">Salvar carrossel</button>
+          </section>          <button id="save-image" class="primary-button settings-save" type="button">Salvar banner</button>
         </section>
       </main>
     </div>
