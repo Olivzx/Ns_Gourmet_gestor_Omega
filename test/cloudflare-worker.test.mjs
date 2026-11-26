@@ -79,12 +79,20 @@ test("order endpoint rejects unsupported content types", async () => {
   assert.equal(response.status, 415);
 });
 
-test("order endpoint forwards the order to the existing create_public_order RPC", async () => {
+test("order endpoint persists first, then returns a configurable WhatsApp handoff URL", async () => {
   const originalFetch = globalThis.fetch;
-  let call;
+  const calls = [];
   globalThis.fetch = async (url, options) => {
-    call = { url, options };
-    return Response.json({ orderId: "order-123", totalCents: 5900, duplicate: false });
+    calls.push({ url: String(url), options });
+    if (calls.length === 1) return Response.json({ orderId: "order-123", totalCents: 5900, duplicate: false });
+    return Response.json({
+      storeName: "NS Gourmet",
+      whatsapp: "79999999999",
+      whatsappEnabled: true,
+      whatsappContactName: "NS Gourmet",
+      whatsappMessageTemplate: "Pedido {{pedido}} de {{cliente}}: {{total}} - {{produtos}}",
+      products: [{ id: "item-1", name: "Bolo de morango", unitPriceCents: 5900 }],
+    });
   };
 
   const payload = {
@@ -106,8 +114,13 @@ test("order endpoint forwards the order to the existing create_public_order RPC"
     assert.equal(body.orderId, "order-123");
     assert.equal(body.totalCents, 5900);
     assert.equal(body.demo, false);
-    assert.equal(call.url, "https://example.supabase.co/rest/v1/rpc/create_public_order");
-    assert.deepEqual(JSON.parse(call.options.body), { p_order: payload });
+    assert.equal(calls.length, 2);
+    assert.equal(calls[0].url, "https://example.supabase.co/rest/v1/rpc/create_public_order");
+    assert.deepEqual(JSON.parse(calls[0].options.body), { p_order: payload });
+    assert.equal(calls[1].url, "https://example.supabase.co/rest/v1/rpc/public_order_menu");
+    assert.match(body.whatsappUrl, /^https:\/\/wa\.me\/5579999999999\?/);
+    assert.match(decodeURIComponent(body.whatsappUrl), /Cliente de teste/);
+    assert.match(decodeURIComponent(body.whatsappUrl), /Bolo de morango/);
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -125,7 +138,40 @@ test("order endpoint returns a controlled error when Supabase secrets are missin
   assert.match((await response.clone().json()).error, /banco ainda não foi configurada/i);
 });
 
-test("unknown API routes return JSON 404", async () => {
+
+test("admin JavaScript is served from the deployed static asset when available", async () => {
+  const response = await worker.fetch(request("/admin.js"), {
+    ...env,
+    ASSETS: { async fetch(assetRequest) {
+      assert.equal(new URL(assetRequest.url).pathname, "/admin.js");
+      return new Response("/* updated admin asset */", { headers: { "content-type": "application/javascript" } });
+    } },
+  });
+  assert.equal(response.status, 200);
+  assert.match(await response.text(), /updated admin asset/);
+});
+
+test("public menu endpoint preserves carousel and WhatsApp configuration returned by the RPC", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => Response.json({
+    storeName: "NS Gourmet", whatsapp: "5579999999999",
+    whatsappEnabled: true, whatsappContactName: "NS Gourmet",
+    whatsappMessageTemplate: "Pedido {{pedido}}",
+    heroSlides: [{ url: "https://cdn.example/slide-1.webp", alt: "Destaque" }],
+    heroSlidesEnabled: true, heroSlideIntervalSeconds: 3,
+    products: [], deliveryRates: [], businessHours: { isOpen: true },
+  });
+  try {
+    const response = await worker.fetch(request("/api/public-order/menu"), env);
+    const body = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(body.whatsappEnabled, true);
+    assert.equal(body.whatsappMessageTemplate, "Pedido {{pedido}}");
+    assert.equal(body.heroSlides.length, 1);
+    assert.equal(body.heroSlideIntervalSeconds, 3);
+  } finally { globalThis.fetch = originalFetch; }
+});
+\ntest("unknown API routes return JSON 404", async () => {
   const response = await worker.fetch(request("/api/not-real"), env);
   assert.equal(response.status, 404);
 });
