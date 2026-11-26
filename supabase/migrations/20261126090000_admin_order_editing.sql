@@ -51,7 +51,6 @@ BEGIN
 
     UPDATE public_order_products AS product
     SET stock_quantity = product.stock_quantity + old_items.quantity,
-        available = CASE WHEN product.stock_quantity = 0 AND product.stock_quantity + old_items.quantity > 0 THEN true ELSE product.available END,
         updated_at = now()
     FROM (
       SELECT product_id, SUM(quantity)::integer AS quantity
