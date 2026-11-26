@@ -139,16 +139,14 @@ test("order endpoint returns a controlled error when Supabase secrets are missin
 });
 
 
-test("admin JavaScript is served from the deployed static asset when available", async () => {
-  const response = await worker.fetch(request("/admin.js"), {
-    ...env,
-    ASSETS: { async fetch(assetRequest) {
-      assert.equal(new URL(assetRequest.url).pathname, "/admin.js");
-      return new Response("/* updated admin asset */", { headers: { "content-type": "application/javascript" } });
-    } },
-  });
+test("admin JavaScript release preserves thermal printing and adds WhatsApp/carousel controls", async () => {
+  const response = await worker.fetch(request("/admin.js"), env);
+  const script = await response.text();
   assert.equal(response.status, 200);
-  assert.match(await response.text(), /updated admin asset/);
+  assert.match(response.headers.get("content-type"), /javascript/i);
+  assert.match(script, /print-settings-card/);
+  assert.match(script, /save-whatsapp-config/);
+  assert.match(script, /hero-slides-input/);
 });
 
 test("public menu endpoint preserves carousel and WhatsApp configuration returned by the RPC", async () => {
