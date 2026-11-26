@@ -5,7 +5,7 @@ const JSON_HEADERS = {
 };
 
 const MAX_ORDER_BYTES = 32 * 1024;
-const MAX_ADMIN_BYTES = 3 * 1024 * 1024;
+const MAX_ADMIN_BYTES = 20 * 1024 * 1024;
 const ADMIN_EMAIL = "ns_gourmet@profissional.com";
 const ADMIN_LOGIN_HTML = "<!doctype html>\n<html lang=\"pt-BR\">\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <title>Acesso | NS Gourmet</title>\n  <style>\n    *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#332921;color:#332921;font:14px \"Segoe UI\",sans-serif}.login-card{width:min(380px,calc(100% - 32px));background:#fff;border-radius:10px;padding:28px}.login-brand{font:700 22px Georgia;margin-bottom:24px}.login-card h1{font:500 28px Georgia;margin:0 0 6px}.login-card p{color:#786b62;font-size:12px;margin:0 0 22px}.login-field{display:grid;gap:6px;margin-bottom:12px;font-size:11px}.login-field input{height:44px;border:1px solid #e5ded6;border-radius:7px;padding:0 11px}.login-button{width:100%;height:44px;border:0;border-radius:7px;background:#825f4d;color:#fff;font-weight:700;margin-top:6px}.login-status{min-height:18px;color:#9a5b52;font-size:11px;margin:10px 0 0}\n  </style>\n</head>\n<body>\n  <main class=\"login-card\">\n    <div class=\"login-brand\">NS Gourmet</div>\n    <h1>Acesso administrativo</h1>\n    <p>Entre com as credenciais configuradas no ambiente seguro.</p>\n    <form id=\"login-form\">\n      <label class=\"login-field\"><span>E-mail</span><input id=\"username\" type=\"email\" autocomplete=\"username\" placeholder=\"ns_gourmet@profissional.com\" required></label>\n      <label class=\"login-field\"><span>Senha</span><input id=\"password\" type=\"password\" autocomplete=\"current-password\" required></label>\n      <button class=\"login-button\" type=\"submit\">Entrar no painel</button>\n      <p class=\"login-status\" id=\"login-status\" role=\"status\"></p>\n    </form>\n  </main>\n  <script src=\"/admin-login.js\" defer></script>\n</body>\n</html>\n";
 const ADMIN_LOGIN_JS = "(() => {\n  const form = document.getElementById(\"login-form\");\n  if (!form) return;\n\n  const email = document.getElementById(\"username\");\n  const password = document.getElementById(\"password\");\n  const status = document.getElementById(\"login-status\");\n  const button = form.querySelector('button[type=\"submit\"]');\n\n  form.addEventListener(\"submit\", async event => {\n    event.preventDefault();\n    status.textContent = \"\";\n    button.disabled = true;\n    button.textContent = \"Entrando...\";\n\n    try {\n      const response = await fetch(\"/api/admin/login\", {\n        method: \"POST\",\n        credentials: \"same-origin\",\n        headers: { \"Content-Type\": \"application/json\", \"Accept\": \"application/json\" },\n        body: JSON.stringify({ username: email.value.trim(), password: password.value })\n      });\n      const data = await response.json().catch(() => ({}));\n      if (!response.ok) throw new Error(data.error || \"Não foi possível autenticar.\");\n\n      const sessionResponse = await fetch(\"/api/admin/session\", {\n        method: \"GET\",\n        credentials: \"same-origin\",\n        cache: \"no-store\",\n        headers: { \"Accept\": \"application/json\" }\n      });\n      const session = await sessionResponse.json().catch(() => ({}));\n      if (!sessionResponse.ok || session.authenticated !== true) {\n        throw new Error(\"A senha foi aceita, mas o navegador não confirmou a sessão administrativa. Verifique se os cookies deste site estão permitidos e tente novamente.\");\n      }\n\n      status.textContent = \"Acesso confirmado. Abrindo painel...\";\n      location.replace(\"/admin\");\n    } catch (error) {\n      status.textContent = error instanceof Error ? error.message : \"Falha inesperada ao entrar.\";\n      password.value = \"\";\n      password.focus();\n      button.disabled = false;\n      button.textContent = \"Entrar no painel\";\n    }\n  });\n})();\n";
@@ -193,8 +193,46 @@ async function createPublicOrder(request, env) {
     return json({ error: status === 400 ? errorMessage(result.data?.message, result.error) : result.error }, status);
   }
   const order = result.data;
-  if (!order || typeof order !== "object" || !order.orderId) return json({ error: "O banco retornou uma confirmação de pedido inválida." }, 502);
-  return json({ ok: true, demo: false, orderId: order.orderId, totalCents: order.totalCents, duplicate: Boolean(order.duplicate) }, order.duplicate ? 200 : 201);
+  if (!order || typeof order !== "object" || !order.orderId) return json({ error: "O banco não retornou uma confirmação de pedido válida." }, 502);
+  let whatsappUrl = "";
+  try {
+    const menuResult = await callSupabaseRpc(env, "public_order_menu");
+    const menu = menuResult.ok && menuResult.data && typeof menuResult.data === "object" ? menuResult.data : {};
+    const rawDestination = String(menu.whatsapp || "").replace(/\D/g, "");
+    const destination = rawDestination.length === 10 || rawDestination.length === 11 ? "55" + rawDestination : rawDestination;
+    if (menu.whatsappEnabled !== false && destination.length >= 10) {
+      const products = Array.isArray(menu.products) ? menu.products : [];
+      const byId = new Map(products.map(product => [String(product.id), product]));
+      const orderItems = Array.isArray(parsed.value.items) ? parsed.value.items : [];
+      const items = orderItems.map(item => {
+        const product = byId.get(String(item.productId));
+        const quantity = Math.max(0, Number(item.quantity) || 0);
+        return quantity ? `• ${quantity}x ${product?.name || "Produto"}` : "";
+      }).filter(Boolean);
+      const subtotal = orderItems.reduce((sum, item) => sum + (Number(byId.get(String(item.productId))?.unitPriceCents) || 0) * Math.max(0, Number(item.quantity) || 0), 0);
+      const total = Number(order.totalCents) || 0;
+      const money = cents => "R$ " + (cents / 100).toFixed(2).replace(".", ",");
+      const labels = { pix: "Pix", cash: "Dinheiro", debit: "Cartão de débito", credit: "Cartão de crédito" };
+      const values = {
+        empresa: String(menu.whatsappContactName || menu.storeName || "NS Gourmet"),
+        pedido: String(order.orderId).replace(/-/g, "").slice(0, 8).toUpperCase(),
+        cliente: String(parsed.value.customerName || "").trim(),
+        telefone: String(parsed.value.phone || "").trim() || "Não informado",
+        modalidade: parsed.value.fulfillmentType === "pickup" ? "Retirada" : "Entrega",
+        produtos: items.join("\n") || "Itens do pedido",
+        subtotal: money(subtotal), frete: money(Math.max(0, total - subtotal)), total: money(total),
+        pagamento: labels[parsed.value.paymentMethod] || String(parsed.value.paymentMethod || "Não informado"),
+        endereco: String(parsed.value.address || "").trim() || "Não informado",
+        bairro: String(parsed.value.neighborhood || "").trim() || "Não informado",
+        observacoes: String(parsed.value.notes || "").trim() || "Nenhuma",
+      };
+      const defaultTemplate = "*NOVO PEDIDO — {{empresa}}*\nPedido: #{{pedido}}\nCliente: {{cliente}}\nTelefone: {{telefone}}\nModalidade: {{modalidade}}\nEndereço: {{endereco}}\nBairro: {{bairro}}\n\n*ITENS*\n{{produtos}}\n\nSubtotal: {{subtotal}}\nFrete: {{frete}}\n*TOTAL: {{total}}*\nPagamento: {{pagamento}}\nObservações: {{observacoes}}";
+      const template = String(menu.whatsappMessageTemplate || defaultTemplate);
+      const message = template.replace(/{{\s*([a-z]+)\s*}}/gi, (match, key) => Object.hasOwn(values, key.toLowerCase()) ? values[key.toLowerCase()] : match);
+      whatsappUrl = "https://wa.me/" + destination + "?text=" + encodeURIComponent(message);
+    }
+  } catch (error) { console.error("Pedido registrado, mas não foi possível preparar o link do WhatsApp:", error); }
+  return json({ ok: true, demo: false, orderId: order.orderId, totalCents: order.totalCents, duplicate: Boolean(order.duplicate), whatsappUrl }, order.duplicate ? 200 : 201);
 }
 
 async function verifySupabaseUser(env, accessToken) {
@@ -574,6 +612,13 @@ async function adminStoreConfig(request, env) {
   if (request.method === "GET") {
     return json({
       heroImageDataUrl: current.hero_image_url || "",
+      heroSlides: Array.isArray(current.hero_slides) ? current.hero_slides : [],
+      heroSlidesEnabled: current.hero_slides_enabled !== false,
+      heroSlideIntervalSeconds: Number(current.hero_slide_interval_seconds ?? 3),
+      whatsapp: current.whatsapp || "",
+      whatsappEnabled: current.whatsapp_enabled !== false,
+      whatsappContactName: current.whatsapp_contact_name || current.store_name || "NS Gourmet",
+      whatsappMessageTemplate: current.whatsapp_message_template || "",
       businessHours: current.business_hours || {},
       businessHoursEnabled: current.business_hours_enabled === true,
       acceptingOrders: current.accepting_orders === true,
@@ -597,6 +642,35 @@ async function adminStoreConfig(request, env) {
       patch.hero_image_url = input.heroImageDataUrl;
     } else return json({ error: "Imagem do banner inválida." }, 400);
   }
+  if (Object.hasOwn(input, "heroSlides")) {
+    if (!Array.isArray(input.heroSlides) || input.heroSlides.length > 6) return json({ error: "Adicione no máximo 6 imagens ao carrossel." }, 400);
+    const slides = [];
+    try {
+      for (const item of input.heroSlides) {
+        if (!item || typeof item !== "object") return json({ error: "Um dos slides está inválido." }, 400);
+        let url = String(item.url || "");
+        if (typeof item.imageDataUrl === "string" && item.imageDataUrl.startsWith("data:image/")) url = await uploadImage(env, item.imageDataUrl, "store-slides");
+        else if (url && !/^https:\/\/[^ ]+$/i.test(url)) return json({ error: "Uma das imagens do carrossel possui endereço inválido." }, 400);
+        if (!url) return json({ error: "Um dos slides está sem imagem." }, 400);
+        slides.push({ url, alt: String(item.alt || "Destaque da loja").trim().slice(0, 120) || "Destaque da loja" });
+      }
+    } catch (error) { return json({ error: error.message || "Não foi possível enviar as imagens do carrossel." }, 400); }
+    patch.hero_slides = slides;
+  }
+  if (typeof input.heroSlidesEnabled === "boolean") patch.hero_slides_enabled = input.heroSlidesEnabled;
+  if (typeof input.heroSlideIntervalSeconds !== "undefined") {
+    const seconds = Number(input.heroSlideIntervalSeconds);
+    if (!Number.isInteger(seconds) || seconds < 2 || seconds > 30) return json({ error: "O intervalo dos slides deve ficar entre 2 e 30 segundos." }, 400);
+    patch.hero_slide_interval_seconds = seconds;
+  }
+  if (typeof input.whatsapp === "string") {
+    const number = input.whatsapp.replace(/\D/g, "").slice(0, 20);
+    if (number && number.length < 10) return json({ error: "Informe um WhatsApp com DDD e número válidos." }, 400);
+    patch.whatsapp = number;
+  }
+  if (typeof input.whatsappEnabled === "boolean") patch.whatsapp_enabled = input.whatsappEnabled;
+  if (typeof input.whatsappContactName === "string") patch.whatsapp_contact_name = input.whatsappContactName.trim().slice(0, 100);
+  if (typeof input.whatsappMessageTemplate === "string") patch.whatsapp_message_template = input.whatsappMessageTemplate.slice(0, 4000);
   if (Object.hasOwn(input, "businessHours")) {
     if (!input.businessHours || typeof input.businessHours !== "object" || Array.isArray(input.businessHours)) {
       return json({ error: "A configuração dos horários é inválida." }, 400);
@@ -649,6 +723,14 @@ async function adminStoreConfig(request, env) {
   return json({
     ok: true,
     config: {
+      heroImageDataUrl: saved.hero_image_url || "",
+      heroSlides: Array.isArray(saved.hero_slides) ? saved.hero_slides : [],
+      heroSlidesEnabled: saved.hero_slides_enabled !== false,
+      heroSlideIntervalSeconds: Number(saved.hero_slide_interval_seconds ?? 3),
+      whatsapp: saved.whatsapp || "",
+      whatsappEnabled: saved.whatsapp_enabled !== false,
+      whatsappContactName: saved.whatsapp_contact_name || saved.store_name || "NS Gourmet",
+      whatsappMessageTemplate: saved.whatsapp_message_template || "",
       businessHours: saved.business_hours || {},
       businessHoursEnabled: saved.business_hours_enabled === true,
       acceptingOrders: saved.accepting_orders === true,
@@ -694,6 +776,7 @@ export default {
     }
     if (url.pathname.startsWith("/api/admin/")) return routeAdminApi(request, env);
     if (url.pathname === "/admin.js") {
+      if (env.ASSETS) return env.ASSETS.fetch(request);
       return new Response(ADMIN_APP_JS, { headers: { "content-type": "application/javascript; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff" } });
     }
     if (url.pathname === "/pedido.js") {

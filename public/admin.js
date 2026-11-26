@@ -6,6 +6,7 @@
   let overview = { totals: {}, orders: [], products: [], paymentTotals: {} };
   let orderFilter = "todos";
   let heroImageDataUrl = "";
+  let heroSlides = [];
   let pollingTimer = null;
   let deliveryRates = [];
   let knownOrderIds = null;
@@ -460,6 +461,14 @@
     try {
       const config = await api("/api/admin/store-config");
       setPreview(config.heroImageDataUrl || "");
+      heroSlides = Array.isArray(config.heroSlides) ? config.heroSlides.map(slide => ({ url: slide.url, alt: slide.alt || "Destaque da loja" })) : [];
+      renderHeroSlides();
+      $("hero-slide-interval").value = String(config.heroSlideIntervalSeconds || 3);
+      $("hero-slides-enabled").checked = config.heroSlidesEnabled !== false;
+      $("whatsapp-number").value = config.whatsapp || "";
+      $("whatsapp-contact-name").value = config.whatsappContactName || "NS Gourmet";
+      $("whatsapp-enabled").checked = config.whatsappEnabled !== false;
+      $("whatsapp-template").value = config.whatsappMessageTemplate || "";
       renderHours(config.businessHours || {});
       $("origin-address").value = config.originAddress || "";
       renderStoreMode(config.manualOpenOverride);
@@ -470,6 +479,76 @@
     }
   }
 
+  function renderHeroSlides() {
+    const list = $("hero-slides-list");
+    if (!list) return;
+    list.innerHTML = heroSlides.length ? heroSlides.map((slide, index) => `
+      <div class="hero-slide-admin">
+        <img src="${esc(slide.url || slide.imageDataUrl || "")}" alt="">
+        <span>Slide ${index + 1}</span>
+        <div class="hero-slide-admin-actions">
+          <button type="button" data-slide-up="${index}" ${index === 0 ? "disabled" : ""}>↑</button>
+          <button type="button" data-slide-down="${index}" ${index === heroSlides.length - 1 ? "disabled" : ""}>↓</button>
+          <button type="button" data-slide-remove="${index}">Remover</button>
+        </div>
+      </div>`).join("") : '<p class="empty-state">Nenhuma imagem adicionada. O banner principal continuará sendo usado como alternativa.</p>';
+  }
+  function readSlideFile(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("Não foi possível ler uma das imagens."));
+      reader.readAsDataURL(file);
+    });
+  }
+  $("hero-slides-input").addEventListener("change", async event => {
+    const files = [...(event.target.files || [])];
+    if (heroSlides.length + files.length > 6) { toast("O carrossel aceita no máximo 6 imagens."); event.target.value = ""; return; }
+    if (files.some(file => !["image/png", "image/jpeg", "image/webp"].includes(file.type) || file.size > 2 * 1024 * 1024)) {
+      toast("Cada imagem deve ser JPG, PNG ou WebP e ter até 2 MB."); event.target.value = ""; return;
+    }
+    try {
+      const dataUrls = await Promise.all(files.map(readSlideFile));
+      dataUrls.forEach((imageDataUrl, index) => heroSlides.push({ imageDataUrl, alt: files[index].name.replace(/\.[^.]+$/, "").slice(0, 120) || "Destaque da loja" }));
+      renderHeroSlides();
+    } catch (error) { toast(error.message); }
+    event.target.value = "";
+  });
+  $("hero-slides-list").addEventListener("click", event => {
+    const remove = event.target.closest("[data-slide-remove]");
+    const up = event.target.closest("[data-slide-up]");
+    const down = event.target.closest("[data-slide-down]");
+    if (remove) heroSlides.splice(Number(remove.dataset.slideRemove), 1);
+    else if (up) { const i = Number(up.dataset.slideUp); if (i > 0) [heroSlides[i - 1], heroSlides[i]] = [heroSlides[i], heroSlides[i - 1]]; }
+    else if (down) { const i = Number(down.dataset.slideDown); if (i < heroSlides.length - 1) [heroSlides[i + 1], heroSlides[i]] = [heroSlides[i], heroSlides[i + 1]]; }
+    else return;
+    renderHeroSlides();
+  });
+  $("save-hero-slides").addEventListener("click", async () => {
+    const button = $("save-hero-slides");
+    button.disabled = true; button.textContent = "Enviando imagens...";
+    try {
+      await api("/api/admin/store-config", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ heroSlides, heroSlidesEnabled: $("hero-slides-enabled").checked, heroSlideIntervalSeconds: Number($("hero-slide-interval").value || 3) }),
+      });
+      await loadConfig();
+      toast("Carrossel salvo e imagens enviadas ao armazenamento.");
+    } catch (error) { toast(error.message); }
+    finally { button.disabled = false; button.textContent = "Salvar carrossel"; }
+  });
+  $("save-whatsapp-config").addEventListener("click", async () => {
+    const button = $("save-whatsapp-config");
+    button.disabled = true; button.textContent = "Salvando...";
+    try {
+      await api("/api/admin/store-config", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ whatsapp: $("whatsapp-number").value, whatsappContactName: $("whatsapp-contact-name").value, whatsappEnabled: $("whatsapp-enabled").checked, whatsappMessageTemplate: $("whatsapp-template").value }),
+      });
+      toast("Configuração de WhatsApp salva.");
+    } catch (error) { toast(error.message); }
+    finally { button.disabled = false; button.textContent = "Salvar WhatsApp"; }
+  });
   $("hero-image-input").addEventListener("change", event => {
     const file = event.target.files[0];
     if (!file) return;

@@ -1,17 +1,33 @@
 (() => {
 const $ = id => document.getElementById(id);
 const brl = cents => new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(cents/100);
-const state = {products:[],rates:[],cart:{},category:"Todos",fallbackCents:200,fallbackKm:3,ordersOpen:false};
+const state = {products:[],rates:[],cart:{},category:"Todos",fallbackCents:200,fallbackKm:3,ordersOpen:false,heroSlides:[],slideIndex:0,slideTimer:null,slideInterval:3000};
 const esc = s => String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 async function init(){
  try{
   const response=await fetch("/api/public-order/menu"); if(!response.ok)throw Error("Falha ao carregar cardápio.");
   const data=await response.json();state.products=data.products||[];state.rates=data.deliveryRates||[];state.fallbackCents=Number(data.deliveryFallbackCents??200);state.fallbackKm=Number(data.deliveryFallbackKm??3);if($("fallback-distance-help"))$("fallback-distance-help").textContent=`Usaremos ${brl(state.fallbackCents)} a cada ${state.fallbackKm} km para bairros não cadastrados.`;
   $("demo-ribbon").hidden=!data.demo;
-  const heroImage=$("store-hero-image");
-  if(data.heroImageDataUrl){heroImage.src=data.heroImageDataUrl;heroImage.hidden=false;$("store-hero").classList.add("has-image");}
+  state.heroSlides = Array.isArray(data.heroSlides) && data.heroSlides.length && data.heroSlidesEnabled !== false ? data.heroSlides.filter(slide => slide && slide.url) : (data.heroImageDataUrl ? [{url:data.heroImageDataUrl,alt:"Destaque da loja"}] : []);
+  state.slideInterval = Math.max(2,Math.min(30,Number(data.heroSlideIntervalSeconds)||3))*1000;
+  renderHeroSlides();
   categories();products();neighborhoods();hours(data.businessHours);
  }catch(e){$("menu-status").textContent=e.message;}
+}
+function renderHeroSlides(){
+ const hero=$("store-hero"),track=$("hero-slides");
+ if(state.slideTimer){clearInterval(state.slideTimer);state.slideTimer=null;}
+ if(!state.heroSlides.length){hero.classList.remove("has-image");track.innerHTML="";return;}
+ hero.classList.add("has-image");state.slideIndex=0;
+ track.innerHTML=state.heroSlides.map((slide,index)=>'<img class="hero-slide '+(index===0?'is-active':'')+'" src="'+esc(slide.url)+'" alt="'+esc(slide.alt||"Destaque da loja")+'" loading="'+(index===0?'eager':'lazy')+'">').join("")+
+  (state.heroSlides.length>1?'<div class="hero-slide-dots" aria-label="Selecionar destaque">'+state.heroSlides.map((slide,index)=>'<button type="button" class="hero-slide-dot '+(index===0?'is-active':'')+'" data-hero-slide="'+index+'" aria-label="Mostrar slide '+(index+1)+'"></button>').join("")+'</div>':"");
+ if(state.heroSlides.length>1)state.slideTimer=setInterval(()=>showHeroSlide((state.slideIndex+1)%state.heroSlides.length),state.slideInterval);
+}
+function showHeroSlide(index){
+ const slides=[...document.querySelectorAll(".hero-slide")],dots=[...document.querySelectorAll(".hero-slide-dot")];
+ if(!slides.length)return;state.slideIndex=(index+slides.length)%slides.length;
+ slides.forEach((slide,i)=>slide.classList.toggle("is-active",i===state.slideIndex));
+ dots.forEach((dot,i)=>dot.classList.toggle("is-active",i===state.slideIndex));
 }
 function categories(){const names=["Todos",...new Set(state.products.map(p=>p.category))];$("category-tabs").innerHTML=names.map(n=>'<button class="category-tab '+(state.category===n?'active':'')+'" data-category="'+esc(n)+'">'+esc(n)+'</button>').join("");}
 function products(){
@@ -58,6 +74,7 @@ function cart(){
 function openCart(){const panel=$("checkout-panel");$("mobile-checkout-slot").append(panel);$("mobile-checkout-overlay").hidden=false;document.body.classList.add("checkout-open");$("mobile-cart-trigger").setAttribute("aria-expanded","true");$("mobile-checkout-close").focus();}
 function closeCart(){const panel=$("checkout-panel");$("mobile-checkout-overlay").hidden=true;document.body.classList.remove("checkout-open");$("mobile-cart-trigger").setAttribute("aria-expanded","false");$("order-layout").append(panel);}
 document.addEventListener("click",e=>{
+ const slide=e.target.closest("[data-hero-slide]");if(slide){showHeroSlide(Number(slide.dataset.heroSlide));return;}
  const add=e.target.closest("[data-add]");if(add){state.cart[add.dataset.add]=(state.cart[add.dataset.add]||0)+1;cart();}
  const minus=e.target.closest("[data-minus]");if(minus){state.cart[minus.dataset.minus]=Math.max(0,(state.cart[minus.dataset.minus]||0)-1);cart();}
  const cat=e.target.closest("[data-category]");if(cat){state.category=cat.dataset.category;categories();products();}
@@ -76,7 +93,7 @@ $("public-order-form").addEventListener("submit",async e=>{
  const neighborhood=$("customer-neighborhood").value==="__unregistered"?$("customer-neighborhood-name").value:$("customer-neighborhood").value;
  const payload={requestId:crypto.randomUUID(),customerName:$("customer-name").value,phone:$("customer-phone").value,address:$("customer-address").value,neighborhood,distanceKm:Number($("delivery-distance").value||0),fulfillmentType:$("fulfillment-type").value,paymentMethod:$("payment-method").value,notes:$("order-notes").value,items:Object.entries(state.cart).filter(x=>x[1]>0).map(([productId,quantity])=>({productId,quantity}))};
  const btn=$("submit-order");btn.disabled=true;btn.textContent="Enviando…";
- try{const r=await fetch("/api/public-order/orders",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});const data=await r.json();if(!r.ok)throw Error(data.error||"Não foi possível enviar.");$("public-order-form").hidden=true;$("order-confirmation").hidden=false;$("confirmation-message").textContent="Pedido "+data.orderId+" registrado. Total: "+brl(data.totalCents)+".";$("demo-order-note").hidden=!data.demo;}
+ try{const r=await fetch("/api/public-order/orders",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});const data=await r.json();if(!r.ok)throw Error(data.error||"Não foi possível enviar.");$("public-order-form").hidden=true;$("order-confirmation").hidden=false;$("confirmation-message").textContent="Pedido "+data.orderId+" registrado. Total: "+brl(data.totalCents)+".";$("demo-order-note").hidden=!data.demo;const whatsapp=$("confirmation-whatsapp");if(whatsapp){if(data.whatsappUrl){whatsapp.href=data.whatsappUrl;whatsapp.hidden=false;whatsapp.textContent="Enviar pedido pelo WhatsApp ↗";}else{whatsapp.hidden=true;whatsapp.removeAttribute("href");}}}
  catch(err){alert(err.message);}finally{btn.textContent="Confirmar pedido →";cart();}
 });
 $("new-order").addEventListener("click",()=>{state.cart={};$("public-order-form").reset();$("public-order-form").hidden=false;$("order-confirmation").hidden=true;closeCart();cart();});
