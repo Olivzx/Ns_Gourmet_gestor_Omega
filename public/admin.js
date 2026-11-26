@@ -8,6 +8,8 @@
   let heroImageDataUrl = "";
   let pollingTimer = null;
   let deliveryRates = [];
+  let managedOrderItems = [];
+  let editingManagedOrderId = null;
 
   async function api(url, options = {}) {
     const response = await fetch(url, options);
@@ -168,6 +170,7 @@
     renderPayments();
     renderRecentOrders();
     renderOrders();
+    renderManagedOrders();
     renderDeliveries();
     renderProducts();
     renderFinanceStatus();
@@ -269,7 +272,101 @@
         </div>`).join("") : '<div class="empty-state">Nenhum produto encontrado.</div>'}`;
   }
 
-  async function refresh({ silent = true } = {}) {
+  function renderManagedOrders() {
+    const query = ($("managed-order-search")?.value || "").toLowerCase().trim();
+    const status = $("managed-order-status")?.value || "todos";
+    const orders = (overview.orders || []).filter(order =>
+      (status === "todos" || order.status === status) &&
+      (!query || [order.customerName, order.phone, order.address, order.neighborhood, order.orderId, orderItems(order)].join(" ").toLowerCase().includes(query))
+    );
+    $("managed-order-list").innerHTML = orders.length ? orders.map(order => `
+      <article class="managed-order-card">
+        <div class="managed-order-main">
+          <div class="managed-order-heading"><div><strong>${esc(order.customerName)}</strong><small>Pedido #${esc(order.orderId)} · ${formatDate(order.createdAt)}</small></div><span class="status-pill ${esc(order.status)}">${esc(statusLabels[order.status] || "Novo")}</span></div>
+          <div class="managed-order-meta"><span><b>Telefone:</b> ${esc(order.phone || "Não informado")}</span><span><b>Recebimento:</b> ${order.fulfillmentType === "pickup" ? "Retirada" : "Entrega"}</span><span><b>Pagamento:</b> ${esc(({pix:"Pix",cash:"Dinheiro",debit:"Débito",credit:"Crédito"})[order.paymentMethod] || order.paymentMethod || "Não informado")}</span></div>
+          <p class="managed-order-address">${esc([order.address, order.neighborhood].filter(Boolean).join(" · ") || "Sem endereço cadastrado")}</p>
+          <p class="managed-order-products">${esc(orderItems(order) || "Sem itens")}</p>
+        </div>
+        <div class="managed-order-side"><strong>${brl(order.totalCents)}</strong><button class="primary-button" type="button" data-edit-managed-order="${esc(order.orderId)}">Editar pedido</button></div>
+      </article>`).join("") : '<div class="empty-state">Nenhum pedido corresponde à pesquisa.</div>';
+  }
+
+  function renderManagedOrderItems() {
+    const products = overview.products || [];
+    $("managed-order-items").innerHTML = managedOrderItems.length ? managedOrderItems.map((item,index) => {
+      const known = products.some(product => product.id === item.productId);
+      const options = products.map(product => `<option value="${esc(product.id)}" ${product.id === item.productId ? "selected" : ""}>${esc(product.name)} · ${brl(product.unitPriceCents)}</option>`).join("");
+      const legacy = !known && item.productId ? `<option value="${esc(item.productId)}" selected>${esc(item.name)} · preço histórico</option>` : "";
+      return `<div class="managed-item-row" data-managed-item-index="${index}">
+        <label class="form-field"><span>Produto</span><select data-managed-product>${legacy}${options}</select></label>
+        <label class="form-field"><span>Quantidade</span><input data-managed-quantity type="number" min="1" max="99" step="1" value="${Math.max(1,Number(item.quantity)||1)}"></label>
+        <strong class="managed-item-price">${brl((Number(item.unitPriceCents)||0)*(Number(item.quantity)||0))}</strong>
+        <button type="button" class="managed-remove-item" data-remove-managed-item="${index}" aria-label="Remover produto">Remover</button>
+      </div>`;
+    }).join("") : '<div class="empty-state">Adicione pelo menos um produto ao pedido.</div>';
+    updateManagedOrderTotals();
+  }
+
+  function updateManagedOrderTotals() {
+    const subtotal = managedOrderItems.reduce((sum,item) => sum + (Number(item.unitPriceCents)||0) * (Number(item.quantity)||0),0);
+    const fee = Math.max(0,Math.round(Number($("managed-delivery-fee").value||0)*100));
+    $("managed-subtotal").textContent = brl(subtotal);
+    $("managed-fee-preview").textContent = brl(fee);
+    $("managed-total").textContent = brl(subtotal + fee);
+    document.querySelectorAll(".managed-item-row").forEach((row,index) => {
+      const item=managedOrderItems[index]; const price=row.querySelector(".managed-item-price");
+      if(price&&item) price.textContent=brl((Number(item.unitPriceCents)||0)*(Number(item.quantity)||0));
+    });
+  }
+
+  function openManagedOrderEditor(order) {
+    if (!order) return;
+    editingManagedOrderId = String(order.orderId);
+    $("managed-customer-name").value = order.customerName || "";
+    $("managed-customer-phone").value = order.phone || "";
+    $("managed-fulfillment").value = order.fulfillmentType || "delivery";
+    $("managed-payment").value = order.paymentMethod || "pix";
+    $("managed-status").value = order.status || "novo";
+    $("managed-courier").value = order.courier || "";
+    $("managed-address").value = order.address || "";
+    $("managed-neighborhood").value = order.neighborhood || "";
+    $("managed-delivery-fee").value = (Number(order.deliveryFeeCents)||0)/100;
+    $("managed-notes").value = order.notes || "";
+    managedOrderItems = (order.items || []).map(item => ({productId:item.productId,name:item.name,quantity:item.quantity,unitPriceCents:item.unitPriceCents}));
+    renderManagedOrderItems();
+    $("managed-order-modal").hidden = false;
+  }
+
+  function closeManagedOrderEditor() {
+    $("managed-order-modal").hidden = true;
+    editingManagedOrderId = null;
+    managedOrderItems = [];
+  }
+
+  async function saveManagedOrder(event) {
+    event.preventDefault();
+    if (!editingManagedOrderId || !$("managed-order-form").reportValidity()) return;
+    if (!managedOrderItems.length || managedOrderItems.some(item => !item.productId || !Number.isInteger(Number(item.quantity)) || Number(item.quantity)<1 || Number(item.quantity)>99)) {
+      toast("Confira os produtos e as quantidades do pedido."); return;
+    }
+    const button=$("save-managed-order"); button.disabled=true; button.textContent="Salvando...";
+    const payload={
+      customerName:$("managed-customer-name").value.trim(), phone:$("managed-customer-phone").value.trim(),
+      fulfillmentType:$("managed-fulfillment").value, paymentMethod:$("managed-payment").value,
+      status:$("managed-status").value, courier:$("managed-courier").value.trim(),
+      address:$("managed-address").value.trim(), neighborhood:$("managed-neighborhood").value.trim(),
+      deliveryFeeCents:Math.round(Number($("managed-delivery-fee").value||0)*100),
+      notes:$("managed-notes").value.trim(),
+      items:managedOrderItems.map(item=>({productId:item.productId,quantity:Number(item.quantity),unitPriceCents:Number(item.unitPriceCents)||0}))
+    };
+    try {
+      await api("/api/admin/orders/"+encodeURIComponent(editingManagedOrderId),{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+      closeManagedOrderEditor(); await refresh(); toast("Pedido atualizado com sucesso.");
+    } catch(error) { toast(error.message); }
+    finally { button.disabled=false; button.textContent="Salvar alterações"; }
+  }
+
+    async function refresh({ silent = true } = {}) {
     try {
       overview = await api("/api/admin/overview");
       render();
@@ -287,9 +384,10 @@
     document.querySelectorAll(".admin-section").forEach(element => element.classList.remove("active"));
     document.querySelectorAll(".nav-item").forEach(element => element.classList.toggle("active", element.dataset.section === section));
     $(section + "-section").classList.add("active");
-    const titles = { dashboard: "Visão geral", orders: "Pedidos", deliveries: "Entregadores", products: "Produtos", finance: "Financeiro", settings: "Configurações" };
+    const titles = { dashboard: "Visão geral", orders: "Pedidos", "manage-orders": "Gerenciar pedidos", deliveries: "Entregadores", products: "Produtos", finance: "Financeiro", settings: "Configurações" };
     $("section-title").textContent = titles[section];
     $("admin-sidebar").classList.remove("open");
+    if (section === "manage-orders") renderManagedOrders();
   }
 
   function openProductModal(product = null) {
@@ -314,7 +412,43 @@
   $("mobile-menu").addEventListener("click", () => $("admin-sidebar").classList.add("open"));
   $("sidebar-close").addEventListener("click", () => $("admin-sidebar").classList.remove("open"));
 
-  $("order-filters").addEventListener("click", event => {
+  $("managed-order-search").addEventListener("input", renderManagedOrders);
+  $("managed-order-status").addEventListener("change", renderManagedOrders);
+  $("managed-order-list").addEventListener("click", event => {
+    const button=event.target.closest("[data-edit-managed-order]");
+    if(button) openManagedOrderEditor((overview.orders||[]).find(order=>String(order.orderId)===button.dataset.editManagedOrder));
+  });
+  $("managed-order-items").addEventListener("change", event => {
+    const row=event.target.closest("[data-managed-item-index]"); if(!row)return;
+    const index=Number(row.dataset.managedItemIndex); const item=managedOrderItems[index]; if(!item)return;
+    if(event.target.matches("[data-managed-product]")) {
+      const product=(overview.products||[]).find(value=>value.id===event.target.value);
+      if(product) managedOrderItems[index]={...item,productId:product.id,name:product.name,unitPriceCents:product.unitPriceCents};
+    }
+    if(event.target.matches("[data-managed-quantity]")) item.quantity=Math.min(99,Math.max(1,Number(event.target.value)||1));
+    renderManagedOrderItems();
+  });
+  $("managed-order-items").addEventListener("click", event => {
+    const remove=event.target.closest("[data-remove-managed-item]");
+    if(remove){managedOrderItems.splice(Number(remove.dataset.removeManagedItem),1);renderManagedOrderItems();}
+  });
+  $("managed-add-item").addEventListener("click", () => {
+    const product=(overview.products||[]).find(item=>item.available);
+    if(!product){toast("Não há produtos disponíveis no catálogo.");return;}
+    managedOrderItems.push({productId:product.id,name:product.name,quantity:1,unitPriceCents:product.unitPriceCents});
+    renderManagedOrderItems();
+  });
+  $("managed-delivery-fee").addEventListener("input",updateManagedOrderTotals);
+  $("managed-fulfillment").addEventListener("change", () => {
+    if($("managed-fulfillment").value==="pickup") $("managed-delivery-fee").value="0";
+    updateManagedOrderTotals();
+  });
+  $("managed-order-form").addEventListener("submit",saveManagedOrder);
+  $("close-managed-order").addEventListener("click",closeManagedOrderEditor);
+  $("cancel-managed-order").addEventListener("click",closeManagedOrderEditor);
+  $("managed-order-modal").addEventListener("click",event=>{if(event.target===$("managed-order-modal"))closeManagedOrderEditor();});
+
+    $("order-filters").addEventListener("click", event => {
     const button = event.target.closest("[data-status]");
     if (!button) return;
     orderFilter = button.dataset.status;
