@@ -1,0 +1,1 @@
+Temporary branch used to trigger the repository's existing Worker validation workflow for the main release. The implementation itself is already on main.
