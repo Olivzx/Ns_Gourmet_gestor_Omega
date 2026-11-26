@@ -5,7 +5,8 @@
   const statusLabels = { novo: "Novo", preparando: "Preparando", pronto: "Pronto", saiu_entrega: "Em entrega", entregue: "Entregue", cancelado: "Cancelado" };
   let overview = { totals: {}, orders: [], products: [], paymentTotals: {} };
   let orderFilter = "todos";
-  let heroImageDataUrl = "";\n  let heroSlides = [];
+  let heroImageDataUrl = "";
+  let heroSlides = [];
   let pollingTimer = null;
   let deliveryRates = [];
   let knownOrderIds = null;
