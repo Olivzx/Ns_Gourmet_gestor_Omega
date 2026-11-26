@@ -162,13 +162,14 @@
       (!category || product.category === category)
     );
     $("products-list").innerHTML = `
-      <div class="product-row header"><span>Produto</span><span>Categoria</span><span>Preço</span><span>Situação</span><span>Ações</span></div>
+      <div class="product-row header"><span>Produto</span><span>Categoria</span><span>Preço</span><span>Estoque</span><span>Situação</span><span>Ações</span></div>
       ${products.length ? products.map(product => `
         <div class="product-row">
           <div class="product-info"><strong>${esc(product.name)}</strong><small>${esc(product.description || "Sem descrição")}</small></div>
           <span>${esc(product.category)}</span>
           <strong class="product-price">${brl(product.unitPriceCents)}</strong>
-          <button class="availability ${product.available ? "available" : "unavailable"}" type="button" data-toggle-product="${esc(product.id)}">${product.available ? "Disponível" : "Indisponível"}</button>
+          <span class="product-stock">${product.stockQuantity === null || typeof product.stockQuantity === "undefined" ? "Ilimitado" : product.stockQuantity > 0 ? `${product.stockQuantity} un.` : "Esgotado"}</span>
+          <button class="availability ${product.available && (product.stockQuantity === null || product.stockQuantity > 0) ? "available" : "unavailable"}" type="button" data-toggle-product="${esc(product.id)}">${product.available && (product.stockQuantity === null || product.stockQuantity > 0) ? "Disponível" : "Esgotado"}</button>
           <div class="product-actions"><button type="button" data-edit-product="${esc(product.id)}">Editar</button><button type="button" data-delete-product="${esc(product.id)}">Excluir</button></div>
         </div>`).join("") : '<div class="empty-state">Nenhum produto encontrado.</div>'}`;
   }
@@ -268,6 +269,7 @@
     $("product-category").value = product?.category || "";
     $("product-price").value = product ? (product.unitPriceCents / 100).toFixed(2) : "";
     $("product-description").value = product?.description || "";
+    $("product-stock").value = product?.stockQuantity ?? "";
     $("product-available").checked = product ? product.available : true;
     $("product-image").value = "";
   }
@@ -370,6 +372,7 @@
       category: $("product-category").value,
       priceReais: Number($("product-price").value),
       description: $("product-description").value,
+      stockQuantity: $("product-stock").value === "" ? null : Number($("product-stock").value),
       available: $("product-available").checked,
     };
     const file = $("product-image").files[0];

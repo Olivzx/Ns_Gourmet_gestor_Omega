@@ -299,7 +299,7 @@ test("admin login refuses accounts outside the configured allowlist", async () =
 });
 
 test("admin login HTML is served directly with its dedicated script", async () => {
-  const response = await worker.fetch(request("/admin"), env);
+  const response = await worker.fetch(request("/gestao-ns-gourmet"), env);
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type"), /text\/html/);
   assert.match(await response.text(), /src="\/admin-login\.js" defer/);
@@ -327,7 +327,7 @@ test("admin route serves login page until the Supabase session is verified", asy
   assert.match(await response.text(), /src="\/admin-login\.js" defer/);
 });
 
-test("direct admin html URL is also protected", async () => {
+test("legacy admin URL redirects to the canonical management route", async () => {
   const response = await worker.fetch(request("/admin.html"), {
     ...env,
     ASSETS: {
@@ -336,7 +336,8 @@ test("direct admin html URL is also protected", async () => {
       },
     },
   });
-  assert.match(await response.text(), /src="\/admin-login\.js" defer/);
+  assert.equal(response.status, 308);
+  assert.match(response.headers.get("location"), /\/gestao-ns-gourmet$/);
 });
 
 

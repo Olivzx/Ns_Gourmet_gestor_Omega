@@ -1443,3 +1443,13 @@ body {
     height: 220px !important;
   }
 }
+
+/* NS Gourmet: controles padronizados no caramelo do botão WhatsApp */
+button:not(.category-tab):not(.header-cart):not(.hero-slide-dot):not(.mobile-checkout-backdrop){background:var(--wine)!important;color:#fff!important;border:1px solid var(--wine)!important;border-radius:7px!important;font-weight:700!important;transition:background .18s,border-color .18s,transform .18s}
+button:not(.category-tab):not(.header-cart):not(.hero-slide-dot):not(.mobile-checkout-backdrop):hover:not(:disabled){background:var(--wine-dark)!important;border-color:var(--wine-dark)!important}
+button:disabled{opacity:.55;cursor:not-allowed}
+.new-order{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:10px 15px!important}
+.menu-stock{display:block;margin-top:5px;color:var(--wine);font-size:11px;font-weight:700}
+.menu-stock.is-sold-out{color:#a15e53}
+.menu-product.is-sold-out{opacity:.76}
+.quantity-add:disabled{background:#b9aaa0!important;border-color:#b9aaa0!important}
