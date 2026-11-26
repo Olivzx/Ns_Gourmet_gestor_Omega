@@ -2,7 +2,7 @@ name: Cloudflare Worker checks
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, feature/order-notifications]
   push:
     branches: [fix/cloudflare-static-assets]
 
