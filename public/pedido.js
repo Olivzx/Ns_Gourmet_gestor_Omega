@@ -93,10 +93,14 @@ $("public-order-form").addEventListener("submit",async e=>{
  const neighborhood=$("customer-neighborhood").value==="__unregistered"?$("customer-neighborhood-name").value:$("customer-neighborhood").value;
  const payload={requestId:crypto.randomUUID(),customerName:$("customer-name").value,phone:$("customer-phone").value,address:$("customer-address").value,neighborhood,distanceKm:Number($("delivery-distance").value||0),fulfillmentType:$("fulfillment-type").value,paymentMethod:$("payment-method").value,notes:$("order-notes").value,items:Object.entries(state.cart).filter(x=>x[1]>0).map(([productId,quantity])=>({productId,quantity}))};
  const btn=$("submit-order");btn.disabled=true;btn.textContent="Enviando…";
- try{const r=await fetch("/api/public-order/orders",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});const data=await r.json();if(!r.ok)throw Error(data.error||"Não foi possível enviar.");$("public-order-form").hidden=true;$("order-confirmation").hidden=false;$("confirmation-message").textContent="Pedido "+data.orderId+" registrado. Total: "+brl(data.totalCents)+".";$("demo-order-note").hidden=!data.demo;const whatsapp=$("confirmation-whatsapp");if(whatsapp){if(data.whatsappUrl){whatsapp.href=data.whatsappUrl;whatsapp.hidden=false;whatsapp.textContent="Enviar pedido pelo WhatsApp ↗";}else{whatsapp.hidden=true;whatsapp.removeAttribute("href");}}}
+ try{const r=await fetch("/api/public-order/orders",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});const data=await r.json();if(!r.ok)throw Error(data.error||"Não foi possível enviar.");$("public-order-form").hidden=true;$("confirmation-message").textContent="Seu pedido nº "+data.orderId+" foi recebido pela NS Gourmet. Total: "+brl(data.totalCents)+".";$("demo-order-note").hidden=!data.demo;const whatsapp=$("confirmation-whatsapp");if(whatsapp){if(data.whatsappUrl){whatsapp.href=data.whatsappUrl;whatsapp.hidden=false;}else{whatsapp.hidden=true;whatsapp.removeAttribute("href");}}$("order-success-modal").hidden=false;document.body.classList.add("order-modal-open");$("order-success-close").focus();}
  catch(err){alert(err.message);}finally{btn.textContent="Confirmar pedido →";cart();}
 });
-$("new-order").addEventListener("click",()=>{state.cart={};$("public-order-form").reset();$("public-order-form").hidden=false;$("order-confirmation").hidden=true;closeCart();cart();});
+function closeOrderModal(){ $("order-success-modal").hidden=true;document.body.classList.remove("order-modal-open"); }
+$("order-success-close").addEventListener("click",closeOrderModal);
+$("order-success-backdrop").addEventListener("click",closeOrderModal);
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("order-success-modal").hidden)closeOrderModal();});
+$("new-order").addEventListener("click",()=>{closeOrderModal();state.cart={};$("public-order-form").reset();$("public-order-form").hidden=false;closeCart();cart();});
 $("current-year").textContent=new Date().getFullYear();
 init();
 })();

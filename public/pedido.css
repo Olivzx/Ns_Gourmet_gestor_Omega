@@ -1453,3 +1453,23 @@ button:disabled{opacity:.55;cursor:not-allowed}
 .menu-stock.is-sold-out{color:#a15e53}
 .menu-product.is-sold-out{opacity:.76}
 .quantity-add:disabled{background:#b9aaa0!important;border-color:#b9aaa0!important}
+
+
+/* Confirmação de pedido em modal */
+.order-modal-open{overflow:hidden}
+.order-success-modal[hidden]{display:none!important}
+.order-success-modal{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;padding:20px;box-sizing:border-box}
+.order-success-backdrop{position:absolute;inset:0;width:100%;height:100%;border:0!important;border-radius:0!important;background:rgba(35,27,24,.62)!important;backdrop-filter:blur(4px);cursor:default}
+.order-success-dialog{position:relative;z-index:1;width:min(100%,460px);max-height:min(90vh,720px);overflow:auto;box-sizing:border-box;padding:38px 32px 30px;border:1px solid #eee5dc;border-radius:18px;background:#fffdfa;box-shadow:0 24px 80px rgba(26,19,16,.24);text-align:center;animation:order-modal-in .22s ease-out}
+.order-success-close{position:absolute;top:12px;right:14px;width:38px;height:38px;padding:0!important;border-radius:50%!important;font-size:25px!important;line-height:1}
+.order-success-dialog .confirmation-icon{display:grid;place-items:center;width:66px;height:66px;margin:0 auto 18px;border-radius:50%;background:#e8f1e5;color:#55734b;font-size:34px;font-weight:800}
+.order-success-dialog .section-kicker{display:block;margin-bottom:9px;letter-spacing:.12em;font-size:10px;font-weight:800}
+.order-success-dialog h2{margin:0 0 12px;color:var(--ink);font:600 clamp(24px,5vw,30px)/1.15 Georgia,serif}
+.order-success-dialog #confirmation-message{margin:0 auto 22px;max-width:340px;color:#6d625b;font-size:14px;line-height:1.6;overflow-wrap:anywhere}
+.confirmation-whatsapp{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:50px;box-sizing:border-box;margin:0 0 12px;padding:13px 18px!important;text-align:center;text-decoration:none;font-size:14px}
+.order-success-dialog .demo-order-note{margin:0 0 14px;color:#8b7767;font-size:11px;line-height:1.45}
+.order-success-dialog .new-order{width:100%;min-height:44px;background:transparent!important;color:var(--wine)!important;border:1px solid var(--wine)!important}
+.order-success-dialog .new-order:hover{background:#f7eee7!important}
+@keyframes order-modal-in{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(max-width:480px){.order-success-modal{padding:14px}.order-success-dialog{padding:34px 22px 24px;border-radius:15px}.order-success-dialog h2{font-size:25px}}
+@media(prefers-reduced-motion:reduce){.order-success-dialog{animation:none}}
