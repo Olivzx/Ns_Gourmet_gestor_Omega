@@ -4,7 +4,8 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [fix/cloudflare-static-assets, "feat/**"]
+    branches: [main, fix/cloudflare-static-assets, "feat/**"]
+  workflow_dispatch:
 
 permissions:
   contents: read

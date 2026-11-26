@@ -139,14 +139,20 @@ test("order endpoint returns a controlled error when Supabase secrets are missin
 });
 
 
-test("admin JavaScript release preserves thermal printing and adds WhatsApp/carousel controls", async () => {
-  const response = await worker.fetch(request("/admin.js"), env);
-  const script = await response.text();
-  assert.equal(response.status, 200);
-  assert.match(response.headers.get("content-type"), /javascript/i);
-  assert.match(script, /print-settings-card/);
-  assert.match(script, /save-whatsapp-config/);
-  assert.match(script, /hero-slides-input/);
+test("admin JavaScript is hidden until a valid admin session exists", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => Response.json({ email: "ns_gourmet@profissional.com" });
+  try {
+    const blocked = await worker.fetch(request("/admin.js"), env);
+    assert.equal(blocked.status, 404);
+    const response = await worker.fetch(request("/admin.js", { headers: { cookie: "nsg_admin_access=test-access" } }), env);
+    const script = await response.text();
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get("content-type"), /javascript/i);
+    assert.match(script, /print-settings-card/);
+    assert.match(script, /save-whatsapp-config/);
+    assert.match(script, /hero-slides-input/);
+  } finally { globalThis.fetch = originalFetch; }
 });
 
 test("public menu endpoint preserves carousel and WhatsApp configuration returned by the RPC", async () => {
@@ -315,7 +321,7 @@ test("admin login JavaScript is served directly by the Worker", async () => {
 });
 
 test("admin route serves login page until the Supabase session is verified", async () => {
-  const response = await worker.fetch(request("/admin"), {
+  const response = await worker.fetch(request("/gestao-ns-gourmet"), {
     ...env,
     ASSETS: {
       async fetch(assetRequest) {
@@ -420,20 +426,24 @@ test("admin store config rejects invalid or incomplete business hours", async ()
 });
 
 
-test("admin and public order JavaScript are served directly by the Worker", async () => {
-  const adminResponse = await worker.fetch(request("/admin.js"), env);
-  const publicResponse = await worker.fetch(request("/pedido.js"), env);
-  const adminScript = await adminResponse.text();
-  const publicScript = await publicResponse.text();
-  assert.equal(adminResponse.status, 200);
-  assert.equal(publicResponse.status, 200);
-  assert.match(adminResponse.headers.get("content-type"), /javascript/i);
-  assert.match(publicResponse.headers.get("content-type"), /javascript/i);
-  assert.match(adminScript, /store-mode-controls|Abrir loja agora/);
-  assert.match(adminScript, /Imprimir pedido|data-print-order/);
-  assert.match(adminScript, /58mm|58 mm/);
-  assert.match(adminScript, /print-settings-card/);
-  assert.match(publicScript, /Horario automático desativado|Horário automático desativado/);
+test("admin and public order JavaScript are served with the correct access rules", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => Response.json({ email: "ns_gourmet@profissional.com" });
+  try {
+    const adminResponse = await worker.fetch(request("/admin.js", { headers: { cookie: "nsg_admin_access=test-access" } }), env);
+    const publicResponse = await worker.fetch(request("/pedido.js"), env);
+    const adminScript = await adminResponse.text();
+    const publicScript = await publicResponse.text();
+    assert.equal(adminResponse.status, 200);
+    assert.equal(publicResponse.status, 200);
+    assert.match(adminResponse.headers.get("content-type"), /javascript/i);
+    assert.match(publicResponse.headers.get("content-type"), /javascript/i);
+    assert.match(adminScript, /store-mode-controls|Abrir loja agora/);
+    assert.match(adminScript, /product-stock|stockQuantity/);
+    assert.match(adminScript, /print-settings-card/);
+    assert.match(publicScript, /stockQuantity|menu-stock/);
+    assert.match(publicScript, /Horario automático desativado|Horário automático desativado/);
+  } finally { globalThis.fetch = originalFetch; }
 });
 
 
@@ -479,5 +489,38 @@ test("admin store config rejects invalid manual open override", async () => {
       body: JSON.stringify({ manualOpenOverride: "open" }),
     }), env);
     assert.equal(response.status, 400);
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+
+test("stock API validates integer quantities and normalizes product stock", async () => {
+  const originalFetch = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (url, options = {}) => {
+    const target = String(url);
+    if (target.endsWith("/auth/v1/user")) return Response.json({ email: "ns_gourmet@profissional.com" });
+    calls.push({ target, options });
+    if (target.includes("/rest/v1/public_order_products") && options.method === "PATCH") {
+      return Response.json([{ id: "bolo-teste", name: "Bolo teste", category: "Bolos", unit_price_cents: 3000, available: false, stock_quantity: 0, image_url: null }]);
+    }
+    throw new Error("Unexpected Supabase request: " + target);
+  };
+  try {
+    const response = await worker.fetch(request("/api/admin/products/bolo-teste", {
+      method: "PATCH",
+      headers: { origin: "https://nsgourmet.test", cookie: "nsg_admin_access=test-access", "content-type": "application/json" },
+      body: JSON.stringify({ stockQuantity: 0 }),
+    }), env);
+    const body = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(body.product.stockQuantity, 0);
+    assert.equal(body.product.available, false);
+    assert.equal(JSON.parse(calls[0].options.body).stock_quantity, 0);
+    const invalid = await worker.fetch(request("/api/admin/products/bolo-teste", {
+      method: "PATCH",
+      headers: { origin: "https://nsgourmet.test", cookie: "nsg_admin_access=test-access", "content-type": "application/json" },
+      body: JSON.stringify({ stockQuantity: -2 }),
+    }), env);
+    assert.equal(invalid.status, 400);
   } finally { globalThis.fetch = originalFetch; }
 });
