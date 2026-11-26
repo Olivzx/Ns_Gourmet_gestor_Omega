@@ -3,7 +3,8 @@ RETURNS jsonb LANGUAGE plpgsql SECURITY INVOKER SET search_path = public AS $$
 DECLARE
   v_order public_orders%ROWTYPE; v_item jsonb; v_product public_order_products%ROWTYPE;
   v_product_id text; v_quantity integer; v_subtotal bigint; v_delivery_fee bigint;
-  v_status text; v_old_product_id text; v_old_qty integer;
+  v_status text; v_old_product_id text; v_old_qty integer; v_old_items jsonb;
+  v_unit_price bigint; v_unit_cost bigint;
 BEGIN
   IF p_order IS NULL OR jsonb_typeof(p_order) <> 'object' THEN RAISE EXCEPTION 'Dados do pedido inválidos.'; END IF;
   SELECT * INTO v_order FROM public_orders WHERE id = p_order_id FOR UPDATE;
@@ -26,6 +27,9 @@ BEGIN
   IF p_order ? 'items' THEN
     IF jsonb_typeof(p_order->'items') <> 'array' OR jsonb_array_length(p_order->'items') = 0 THEN RAISE EXCEPTION 'O pedido precisa ter pelo menos um produto.'; END IF;
     IF jsonb_array_length(p_order->'items') > 50 THEN RAISE EXCEPTION 'O pedido excede o limite de 50 linhas de produtos.'; END IF;
+
+    SELECT COALESCE(jsonb_agg(jsonb_build_object('productId',product_id,'unitPriceCents',unit_price_cents,'unitCostCents',unit_cost_cents)), '[]'::jsonb)
+    INTO v_old_items FROM public_order_items WHERE order_id = p_order_id;
 
     FOR v_old_product_id, v_old_qty IN
       SELECT product_id, SUM(quantity)::integer FROM public_order_items WHERE order_id = p_order_id GROUP BY product_id
@@ -54,9 +58,17 @@ BEGIN
           available = CASE WHEN stock_quantity - v_quantity = 0 THEN false ELSE available END, updated_at = now()
         WHERE id = v_product_id;
       END IF;
+      SELECT (old_line->>'unitPriceCents')::bigint, (old_line->>'unitCostCents')::bigint
+      INTO v_unit_price, v_unit_cost
+      FROM jsonb_array_elements(v_old_items) old_line
+      WHERE old_line->>'productId' = v_product_id LIMIT 1;
+      IF NOT FOUND THEN
+        v_unit_price := v_product.unit_price_cents;
+        v_unit_cost := COALESCE(v_product.cost_price_cents,0);
+      END IF;
       INSERT INTO public_order_items(order_id,product_id,product_name,quantity,unit_price_cents,unit_cost_cents)
-      VALUES(p_order_id,v_product.id,v_product.name,v_quantity,v_product.unit_price_cents,COALESCE(v_product.cost_price_cents,0));
-      v_subtotal := v_subtotal + v_product.unit_price_cents * v_quantity;
+      VALUES(p_order_id,v_product.id,v_product.name,v_quantity,v_unit_price,v_unit_cost);
+      v_subtotal := v_subtotal + v_unit_price * v_quantity;
     END LOOP;
   ELSE
     SELECT COALESCE(SUM(quantity * unit_price_cents),0) INTO v_subtotal FROM public_order_items WHERE order_id = p_order_id;
