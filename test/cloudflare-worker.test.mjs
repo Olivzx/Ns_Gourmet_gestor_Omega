@@ -171,7 +171,8 @@ test("public menu endpoint preserves carousel and WhatsApp configuration returne
     assert.equal(body.heroSlideIntervalSeconds, 3);
   } finally { globalThis.fetch = originalFetch; }
 });
-\ntest("unknown API routes return JSON 404", async () => {
+
+test("unknown API routes return JSON 404", async () => {
   const response = await worker.fetch(request("/api/not-real"), env);
   assert.equal(response.status, 404);
 });
