@@ -34,6 +34,13 @@ Portal público de pedidos da NS Gourmet. O frontend é servido por Cloudflare W
 
 O banco continua responsável por recalcular preços e frete, validar produtos disponíveis, horário de atendimento e idempotência. O Worker não aceita valores de total enviados pelo navegador.
 
+## WhatsApp e banners do cardápio
+
+- Depois de registrar o pedido no Supabase, o Worker prepara um link `wa.me` com o resumo confirmado. O cliente decide quando abrir e enviar a mensagem; o registro do pedido não depende do WhatsApp.
+- A gestão configura número de destino, nome exibido, ativação do botão e modelo de mensagem com variáveis como `{{cliente}}`, `{{pedido}}`, `{{produtos}}`, `{{total}}` e `{{endereco}}`.
+- A gestão permite cadastrar até seis banners no carrossel, reordenar/remover imagens e configurar intervalo entre 2 e 30 segundos (padrão: 3 segundos). As imagens ficam no bucket Supabase Storage `product-images`.
+- A migration `20261126000100_whatsapp_checkout_and_hero_carousel.sql` é aditiva. Aplique-a no projeto Supabase Omega antes de habilitar os novos controles na gestão. Não é necessário recriar tabelas nem alterar pedidos existentes.
+
 ## Configuração local
 
 Requisitos: Node.js 20 ou superior.
