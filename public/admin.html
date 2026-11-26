@@ -16,6 +16,7 @@
       <nav class="admin-nav" aria-label="Menu administrativo">
         <button class="nav-item active" type="button" data-section="dashboard"><span class="nav-icon">⌂</span><span>Visão geral</span></button>
         <button class="nav-item" type="button" data-section="orders"><span class="nav-icon">▣</span><span>Pedidos</span><b id="pending-badge">0</b></button>
+        <button class="nav-item" type="button" data-section="manage-orders"><span class="nav-icon">✎</span><span>Gerenciar pedidos</span></button>
         <button class="nav-item" type="button" data-section="deliveries"><span class="nav-icon">◷</span><span>Entregadores</span></button>
         <button class="nav-item" type="button" data-section="products"><span class="nav-icon">♢</span><span>Produtos</span></button>
         <button class="nav-item" type="button" data-section="finance"><span class="nav-icon">R$</span><span>Financeiro</span></button>
@@ -75,6 +76,15 @@
             <label class="search-field"><span>⌕</span><input id="order-search" type="search" placeholder="Buscar pedido ou cliente"></label>
           </div>
           <div class="orders-list" id="orders-list"></div>
+        </section>
+
+        <section class="admin-section" id="manage-orders-section">
+          <div class="section-toolbar managed-orders-toolbar">
+            <div><span class="panel-kicker">ATENDIMENTO</span><h2 class="section-subtitle">Consulta e edição de pedidos</h2></div>
+            <label class="search-field"><span>⌕</span><input id="managed-order-search" type="search" placeholder="Cliente, telefone, endereço ou nº do pedido"></label>
+            <select id="managed-order-status" aria-label="Filtrar pedidos por status"><option value="todos">Todos os status</option><option value="novo">Novos</option><option value="preparando">Preparando</option><option value="pronto">Prontos</option><option value="saiu_entrega">Em entrega</option><option value="entregue">Entregues</option><option value="cancelado">Cancelados</option></select>
+          </div>
+          <div id="managed-order-list" class="managed-order-list"></div>
         </section>
 
         <section class="admin-section" id="deliveries-section">
@@ -195,6 +205,29 @@
           <label class="availability-toggle"><input id="product-available" type="checkbox" checked><span><i></i></span><b>Produto disponível no cardápio</b></label>
         </div>
         <div class="modal-actions"><button class="quiet-button" id="cancel-product" type="button">Cancelar</button><button class="primary-button" id="save-product" type="submit">Salvar produto</button></div>
+      </form>
+    </section>
+  </div>
+  <div class="modal-backdrop managed-order-backdrop" id="managed-order-modal" hidden>
+    <section class="product-modal managed-order-modal" role="dialog" aria-modal="true" aria-labelledby="managed-order-title">
+      <div class="modal-heading"><div><span class="panel-kicker">GESTÃO DE PEDIDOS</span><h2 id="managed-order-title">Editar pedido</h2></div><button id="close-managed-order" type="button" aria-label="Fechar">×</button></div>
+      <form id="managed-order-form">
+        <div class="managed-order-form-grid">
+          <label class="form-field"><span>Nome do cliente *</span><input id="managed-customer-name" required maxlength="140"></label>
+          <label class="form-field"><span>Telefone</span><input id="managed-customer-phone" maxlength="40"></label>
+          <label class="form-field"><span>Modalidade</span><select id="managed-fulfillment"><option value="delivery">Entrega</option><option value="pickup">Retirada</option></select></label>
+          <label class="form-field"><span>Forma de pagamento</span><select id="managed-payment"><option value="pix">Pix</option><option value="cash">Dinheiro</option><option value="debit">Débito</option><option value="credit">Crédito</option></select></label>
+          <label class="form-field"><span>Status do pedido</span><select id="managed-status"><option value="novo">Novo</option><option value="preparando">Preparando</option><option value="pronto">Pronto</option><option value="saiu_entrega">Em entrega</option><option value="entregue">Entregue</option><option value="cancelado">Cancelado</option></select></label>
+          <label class="form-field"><span>Entregador</span><input id="managed-courier" maxlength="120"></label>
+          <label class="form-field managed-address-field"><span>Endereço</span><input id="managed-address" maxlength="300"></label>
+          <label class="form-field"><span>Bairro</span><input id="managed-neighborhood" maxlength="100"></label>
+          <label class="form-field"><span>Frete (R$)</span><input id="managed-delivery-fee" type="number" min="0" step="0.01" value="0"></label>
+          <label class="form-field managed-notes-field"><span>Observações</span><textarea id="managed-notes" rows="3" maxlength="2000"></textarea></label>
+        </div>
+        <div class="managed-items-heading"><div><span class="panel-kicker">COMPOSIÇÃO</span><h3>Produtos do pedido</h3></div><button class="quiet-button" id="managed-add-item" type="button">+ Adicionar produto</button></div>
+        <div id="managed-order-items" class="managed-order-items"></div>
+        <div class="managed-order-totals"><div><span>Subtotal</span><strong id="managed-subtotal">R$ 0,00</strong></div><div><span>Frete</span><strong id="managed-fee-preview">R$ 0,00</strong></div><div class="managed-grand-total"><span>Total atualizado</span><strong id="managed-total">R$ 0,00</strong></div></div>
+        <div class="modal-actions"><button class="quiet-button" id="cancel-managed-order" type="button">Cancelar</button><button class="primary-button" id="save-managed-order" type="submit">Salvar alterações</button></div>
       </form>
     </section>
   </div>
