@@ -198,7 +198,8 @@ async function createPublicOrder(request, env) {
   try {
     const menuResult = await callSupabaseRpc(env, "public_order_menu");
     const menu = menuResult.ok && menuResult.data && typeof menuResult.data === "object" ? menuResult.data : {};
-    const destination = String(menu.whatsapp || "").replace(/\D/g, "");
+    const rawDestination = String(menu.whatsapp || "").replace(/\D/g, "");
+    const destination = rawDestination.length === 10 || rawDestination.length === 11 ? "55" + rawDestination : rawDestination;
     if (menu.whatsappEnabled !== false && destination.length >= 10) {
       const products = Array.isArray(menu.products) ? menu.products : [];
       const byId = new Map(products.map(product => [String(product.id), product]));
@@ -775,6 +776,7 @@ export default {
     }
     if (url.pathname.startsWith("/api/admin/")) return routeAdminApi(request, env);
     if (url.pathname === "/admin.js") {
+      if (env.ASSETS) return env.ASSETS.fetch(request);
       return new Response(ADMIN_APP_JS, { headers: { "content-type": "application/javascript; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff" } });
     }
     if (url.pathname === "/pedido.js") {
