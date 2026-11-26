@@ -357,7 +357,7 @@
       address:$("managed-address").value.trim(), neighborhood:$("managed-neighborhood").value.trim(),
       deliveryFeeCents:Math.round(Number($("managed-delivery-fee").value||0)*100),
       notes:$("managed-notes").value.trim(),
-      items:managedOrderItems.map(item=>({productId:item.productId,quantity:Number(item.quantity)}))
+      items:managedOrderItems.map(item=>({productId:item.productId,quantity:Number(item.quantity),unitPriceCents:Number(item.unitPriceCents)||0}))
     };
     try {
       await api("/api/admin/orders/"+encodeURIComponent(editingManagedOrderId),{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
