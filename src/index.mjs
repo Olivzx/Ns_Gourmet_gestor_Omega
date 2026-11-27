@@ -138,6 +138,7 @@ async function supabaseFetch(env, path, options = {}) {
   try {
     const response = await fetch(config.url + path, {
       ...options,
+      signal: options.signal || AbortSignal.timeout(10000),
       headers: {
         apikey: config.key,
         authorization: "Bearer " + config.key,
@@ -160,7 +161,10 @@ async function supabaseFetch(env, path, options = {}) {
       };
     }
     return { ok: true, status: response.status, data };
-  } catch {
+  } catch (error) {
+    if (error?.name === "TimeoutError" || error?.name === "AbortError") {
+      return { ok: false, status: 504, error: "O banco de dados demorou para responder. Tente novamente em instantes." };
+    }
     return { ok: false, status: 502, error: "Não foi possível conectar ao banco de dados agora." };
   }
 }
