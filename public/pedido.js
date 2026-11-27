@@ -113,6 +113,47 @@ $("public-order-form").addEventListener("submit",async e=>{
  try{const r=await fetch("/api/public-order/orders",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});const data=await r.json();if(!r.ok)throw Error(data.error||"Não foi possível enviar.");$("public-order-form").hidden=true;$("confirmation-message").textContent="Seu pedido nº "+data.orderId+" foi recebido pela NS Gourmet. Total: "+brl(data.totalCents)+".";$("demo-order-note").hidden=!data.demo;const whatsapp=$("confirmation-whatsapp");if(whatsapp){if(data.whatsappUrl){whatsapp.href=data.whatsappUrl;whatsapp.hidden=false;}else{whatsapp.hidden=true;whatsapp.removeAttribute("href");}}$("order-success-modal").hidden=false;document.body.classList.add("order-modal-open");$("order-success-close").focus();}
  catch(err){alert(err.message);}finally{btn.textContent="Confirmar pedido →";cart();}
 });
+function ensureOrderSuccessModal(){
+ let modal=$("order-success-modal");
+ if(modal)return modal;
+ const confirmation=$("order-confirmation");
+ if(!confirmation)throw new Error("Estrutura de confirmação do pedido não encontrada.");
+ modal=document.createElement("div");
+ modal.id="order-success-modal";
+ modal.hidden=true;
+ const backdrop=document.createElement("button");
+ backdrop.id="order-success-backdrop";
+ backdrop.type="button";
+ backdrop.setAttribute("aria-label","Fechar confirmação do pedido");
+ const dialog=document.createElement("section");
+ dialog.id="order-success-dialog";
+ dialog.setAttribute("role","dialog");
+ dialog.setAttribute("aria-modal","true");
+ dialog.setAttribute("aria-label","Pedido recebido");
+ const close=document.createElement("button");
+ close.id="order-success-close";
+ close.type="button";
+ close.setAttribute("aria-label","Fechar");
+ close.textContent="×";
+ dialog.append(close,confirmation);
+ confirmation.hidden=false;
+ confirmation.style.display="block";
+ modal.append(backdrop,dialog);
+ document.body.append(modal);
+ const style=document.createElement("style");
+ style.textContent=`
+ #order-success-modal[hidden]{display:none!important}
+ #order-success-modal:not([hidden]){position:fixed;inset:0;z-index:10000;display:grid;place-items:center;padding:20px}
+ #order-success-backdrop{position:absolute;inset:0;width:100%;height:100%;border:0;background:rgba(35,25,20,.58);cursor:pointer}
+ #order-success-dialog{position:relative;z-index:1;width:min(480px,100%);max-height:90vh;overflow:auto;padding:34px 24px 24px;background:#fff;border:1px solid #e4ddd6;border-radius:18px;box-shadow:0 24px 80px rgba(0,0,0,.22)}
+ #order-success-close{position:absolute;right:12px;top:10px;width:36px;height:36px;border:0;border-radius:50%;background:#f7f3ee;color:#332921;font-size:25px;line-height:1;cursor:pointer}
+ #order-success-dialog #order-confirmation{display:block!important;padding:8px 0 0}
+ body.order-modal-open{overflow:hidden}
+ `;
+ document.head.append(style);
+ return modal;
+}
+ensureOrderSuccessModal();
 function closeOrderModal(){ $("order-success-modal").hidden=true;document.body.classList.remove("order-modal-open"); }
 $("order-success-close").addEventListener("click",closeOrderModal);
 $("order-success-backdrop").addEventListener("click",closeOrderModal);
