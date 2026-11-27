@@ -4,14 +4,27 @@ const brl = cents => new Intl.NumberFormat("pt-BR",{style:"currency",currency:"B
 const state = {products:[],rates:[],cart:{},category:"Todos",fallbackCents:200,fallbackKm:3,ordersOpen:false};
 const esc = s => String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 async function init(){
+ const ribbon=$("demo-ribbon");if(ribbon)ribbon.hidden=true;
+ const controller=new AbortController();
+ const timeout=setTimeout(()=>controller.abort(),12000);
+ $("menu-status").textContent="Conectando ao cardápio...";
+ $("business-hours-status").textContent="Consultando horário de atendimento...";
  try{
-  const response=await fetch("/api/public-order/menu"); if(!response.ok)throw Error("Falha ao carregar cardápio.");
-  const data=await response.json();state.products=data.products||[];state.rates=data.deliveryRates||[];state.fallbackCents=Number(data.deliveryFallbackCents??200);state.fallbackKm=Number(data.deliveryFallbackKm??3);if($("fallback-distance-help"))$("fallback-distance-help").textContent=`Usaremos ${brl(state.fallbackCents)} a cada ${state.fallbackKm} km para bairros não cadastrados.`;
-  $("demo-ribbon").hidden=!data.demo;
+  const response=await fetch("/api/public-order/menu",{signal:controller.signal,cache:"no-store"});
+  let data=null;try{data=await response.json();}catch{}
+  if(!response.ok)throw Error(data?.error||"Não foi possível carregar o cardápio.");
+  if(!data||!Array.isArray(data.products))throw Error("O servidor retornou um cardápio inválido.");
+  state.products=data.products;state.rates=Array.isArray(data.deliveryRates)?data.deliveryRates:[];state.fallbackCents=Number(data.deliveryFallbackCents??200);state.fallbackKm=Number(data.deliveryFallbackKm??3);if($("fallback-distance-help"))$("fallback-distance-help").textContent=`Usaremos ${brl(state.fallbackCents)} a cada ${state.fallbackKm} km para bairros não cadastrados.`;
+  if(ribbon)ribbon.hidden=!data.demo;
   const heroImage=$("store-hero-image");
   if(data.heroImageDataUrl){heroImage.src=data.heroImageDataUrl;heroImage.hidden=false;$("store-hero").classList.add("has-image");}
   categories();products();neighborhoods();hours(data.businessHours);
- }catch(e){$("menu-status").textContent=e.message;}
+ }catch(e){
+  state.ordersOpen=false;
+  const message=e.name==="AbortError"?"O cardápio demorou para responder. Atualize a página para tentar novamente.":(e.message||"Não foi possível carregar o cardápio.");
+  $("menu-status").textContent=message;$("menu-count").textContent="Cardápio indisponível";
+  $("business-hours-status").textContent="Não foi possível consultar o horário";$("business-hours-badge").textContent="Indisponível";$("business-hours-badge").classList.remove("is-open");$("business-hours-detail").textContent="Tente atualizar a página em alguns instantes.";cart();
+ }finally{clearTimeout(timeout);}
 }
 function categories(){const names=["Todos",...new Set(state.products.map(p=>p.category))];$("category-tabs").innerHTML=names.map(n=>'<button class="category-tab '+(state.category===n?'active':'')+'" data-category="'+esc(n)+'">'+esc(n)+'</button>').join("");}
 function products(){
