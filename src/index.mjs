@@ -495,8 +495,11 @@ async function adminProducts(request, env) {
     if (!result.ok) return json({ error: result.error }, result.status);
     return json({ products: result.data.map(normalizeProduct), updatedAt: new Date().toISOString() });
   }
-  const parsed = await readJsonBody(request, MAX_ADMIN_BYTES);
-  if (parsed.error) return json({ error: parsed.error }, parsed.status);
+  let parsed = { value: {} };
+  if (request.method === "POST" || request.method === "PATCH") {
+    parsed = await readJsonBody(request, MAX_ADMIN_BYTES);
+    if (parsed.error) return json({ error: parsed.error }, parsed.status);
+  }
   if (request.method === "POST" && !match) {
     const input = parsed.value;
     const name = String(input.name || "").trim();
